@@ -1,0 +1,26 @@
+framework:
+  connectors:
+    rest:
+      enabled: true
+    kafka:
+      enabled: false
+      bootstrap-servers: "localhost:9092"
+  routing:
+    - processName: "echo-service"
+      triggers:
+        - type: "rest"
+          path: "/api/echo"
+          method: "POST"
+  security:
+    self-signed-cert:
+      enabled: true
+
+server:
+  ssl:
+    key-store: keystore.p12
+    key-store-password: password
+    key-alias: selfsigned
+
+my:
+  secret:
+    property: ENC(i2f5sJmGgP6yqBPnM+2LCA==)

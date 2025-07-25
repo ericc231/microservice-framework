@@ -9,6 +9,7 @@ This is a Spring Boot microservice framework designed with Clean Architecture pr
 *   **Pseudo-White-Box Secret Management:** Securely manages sensitive information using an obfuscated secret reconstruction mechanism.
 *   **Self-Signed SSL Certificate:** Automatic generation of self-signed certificates for local development.
 *   **Operational Scripts:** Includes `start.sh` and `stop.sh` scripts for easy service management, supporting normal, debug, and OpenTelemetry agent modes.
+*   **Extension Mechanism:** Supports loading custom business logic or components from external JAR files placed in the `extensions` directory.
 
 ## Getting Started
 
@@ -19,10 +20,10 @@ This is a Spring Boot microservice framework designed with Clean Architecture pr
 
 ### Build the Project
 
-Navigate to the `microservice-framework` directory and build the project:
+Navigate to the `microservice-parent` directory and build the project:
 
 ```bash
-cd microservice-framework
+cd microservice-parent
 mvn clean install
 ```
 
@@ -32,8 +33,8 @@ Before running the application, you need to generate the `secret.table` and `sec
 
 1.  **Run the generator tool:**
     ```bash
-    # From the microservice-framework directory
-    java -cp target/microservice-framework-0.0.1-SNAPSHOT.jar blog.eric231.framework.infrastructure.security.PseudoWhiteBoxGenerator
+    # From the microservice-parent directory
+    java -cp microservice-app/target/microservice-app-0.0.1-SNAPSHOT.jar blog.eric231.framework.infrastructure.security.PseudoWhiteBoxGenerator
     ```
     This will create `secret.table` and `secret.recipe` in your current directory.
 
@@ -41,10 +42,10 @@ Before running the application, you need to generate the `secret.table` and `sec
 
 ### Running the Application
 
-Navigate to the `bin` directory and use the provided scripts:
+Navigate to the `microservice-parent/microservice-app/bin` directory and use the provided scripts:
 
 ```bash
-cd microservice-framework/bin
+cd microservice-parent/microservice-app/bin
 
 # Normal mode
 ./start.sh
@@ -59,13 +60,17 @@ cd microservice-framework/bin
 ### Stopping the Application
 
 ```bash
-cd microservice-framework/bin
+cd microservice-parent/microservice-app/bin
 ./stop.sh
 ```
 
+## Extension Mechanism
+
+To extend the application with custom business logic or components, simply place your compiled JAR files into the `microservice-parent/microservice-app/extensions` directory. These JARs will be automatically added to the application's classpath at startup.
+
 ## Configuration
 
-Refer to `src/main/resources/application.yml` for framework configuration, including connector enablement and routing rules.
+Refer to `microservice-app/src/main/resources/application.yml` for framework configuration, including connector enablement and routing rules.
 
 ## Contributing
 
