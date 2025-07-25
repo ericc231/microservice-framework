@@ -1,11 +1,10 @@
 package blog.eric231.framework.infrastructure.configuration;
 
 import blog.eric231.framework.application.usecase.BusinessProcess;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +14,6 @@ public class ProcessRegistry {
     private final ApplicationContext applicationContext;
     private final Map<String, BusinessProcess> processMap = new HashMap<>();
 
-    @Autowired
     public ProcessRegistry(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }

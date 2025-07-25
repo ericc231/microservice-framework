@@ -2,7 +2,6 @@ package blog.eric231.framework.infrastructure.security;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;

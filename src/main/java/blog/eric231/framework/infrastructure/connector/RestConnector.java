@@ -4,7 +4,6 @@ import blog.eric231.framework.application.usecase.BusinessProcess;
 import blog.eric231.framework.infrastructure.configuration.FrameworkProperties;
 import blog.eric231.framework.infrastructure.configuration.ProcessRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +15,6 @@ public class RestConnector {
     private final ProcessRegistry processRegistry;
     private final FrameworkProperties frameworkProperties;
 
-    @Autowired
     public RestConnector(ProcessRegistry processRegistry, FrameworkProperties frameworkProperties) {
         this.processRegistry = processRegistry;
         this.frameworkProperties = frameworkProperties;
