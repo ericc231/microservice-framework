@@ -15,16 +15,10 @@ class SelfSignedCertificateGeneratorTest {
 
     @Test
     void testGenerateCertificate() throws Exception {
-        // Set system property to ensure keystore is created in tempDir
-        System.setProperty("user.dir", tempDir.toAbsolutePath().toString());
-
-        SelfSignedCertificateGenerator.generate();
-
         File keystoreFile = tempDir.resolve("keystore.p12").toFile();
+        SelfSignedCertificateGenerator.generate(keystoreFile.getAbsolutePath());
+
         assertTrue(keystoreFile.exists());
         assertTrue(keystoreFile.length() > 0);
-
-        // Clean up system property
-        System.clearProperty("user.dir");
     }
 }

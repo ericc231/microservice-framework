@@ -37,27 +37,6 @@
             </includes>
         </fileSet>
 
-        <!-- Copy secret files (if they exist) -->
-        <fileSet>
-            <directory>${session.executionRootDirectory}</directory>
-            <outputDirectory>config</outputDirectory>
-            <includes>
-                <include>secret.table</include>
-                <include>secret.recipe</include>
-            </includes>
-            <optional>true</optional>
-        </fileSet>
-
-        <!-- Copy opentelemetry-javaagent.jar -->
-        <fileSet>
-            <directory>${session.executionRootDirectory}/microservice-parent/microservice-app/bin</directory>
-            <outputDirectory>bin</outputDirectory>
-            <includes>
-                <include>opentelemetry-javaagent.jar</include>
-            </includes>
-            <optional>true</optional>
-        </fileSet>
-
         <!-- Copy extensions directory -->
         <fileSet>
             <directory>${project.basedir}/extensions</directory>
@@ -65,7 +44,6 @@
             <includes>
                 <include>**/*.jar</include>
             </includes>
-            <optional>true</optional>
         </fileSet>
 
     </fileSets>
@@ -73,7 +51,7 @@
     <dependencySets>
         <dependencySet>
             <outputDirectory>lib</outputDirectory>
-            <useProjectArtifact>false</outputDirectory>
+            <useProjectArtifact>false</useProjectArtifact>
             <scope>runtime</scope>
         </dependencySet>
     </dependencySets>

@@ -20,7 +20,11 @@ public class PseudoWhiteBoxReader {
 
         byte[] salt = hexToBytes(recipe.getProperty("salt"));
         int iterations = Integer.parseInt(recipe.getProperty("iterations"));
-        String[] obfuscatedIndicesStr = recipe.getProperty("indices").split(",");
+        String indicesStr = recipe.getProperty("indices");
+        if (indicesStr == null || indicesStr.isEmpty()) {
+            return "";
+        }
+        String[] obfuscatedIndicesStr = indicesStr.split(",");
 
         // 2. De-obfuscate the indices
         int[] indices = new int[obfuscatedIndicesStr.length];
@@ -42,6 +46,9 @@ public class PseudoWhiteBoxReader {
     }
 
     private byte[] hexToBytes(String hex) {
+        if (hex == null || hex.length() % 2 != 0) {
+            throw new NumberFormatException("Invalid hex string");
+        }
         int len = hex.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {

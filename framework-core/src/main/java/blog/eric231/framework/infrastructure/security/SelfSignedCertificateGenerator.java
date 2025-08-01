@@ -16,7 +16,7 @@ import java.util.Date;
 
 public class SelfSignedCertificateGenerator {
 
-    public static void generate() throws Exception {
+    public static void generate(String outputPath) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
@@ -33,7 +33,7 @@ public class SelfSignedCertificateGenerator {
         keyStore.load(null, null);
         keyStore.setKeyEntry("selfsigned", keyPair.getPrivate(), "password".toCharArray(), new java.security.cert.Certificate[]{certificate});
 
-        try (FileOutputStream fos = new FileOutputStream("keystore.p12")) {
+        try (FileOutputStream fos = new FileOutputStream(outputPath)) {
             keyStore.store(fos, "password".toCharArray());
         }
     }

@@ -31,7 +31,7 @@ public class PseudoWhiteBoxGenerator {
             charList.add(c);
         }
         // Add some dummy characters to make it harder to guess the length
-        for (int i = 0; i < secretLength * 2; i++) {
+        for (int i = 0; i < Math.max(16, secretLength * 2); i++) {
             charList.add((char) (new SecureRandom().nextInt(26) + 'a'));
         }
         Collections.shuffle(charList);

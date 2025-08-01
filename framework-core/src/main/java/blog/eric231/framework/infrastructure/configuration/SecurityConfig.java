@@ -17,7 +17,7 @@ public class SecurityConfig {
 
     @PostConstruct
     public void generateCertificate() throws Exception {
-        SelfSignedCertificateGenerator.generate();
+        SelfSignedCertificateGenerator.generate("keystore.p12");
     }
 
     @Bean

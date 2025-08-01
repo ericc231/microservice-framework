@@ -1,0 +1,4 @@
+framework:
+  security:
+    self-signed-cert:
+      enabled: true

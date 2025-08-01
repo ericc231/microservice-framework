@@ -10,7 +10,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 @Configuration
+@ConditionalOnProperty(name = "jasypt.encryptor.enabled", havingValue = "true", matchIfMissing = true)
 public class JasyptConfig {
 
     @Autowired
