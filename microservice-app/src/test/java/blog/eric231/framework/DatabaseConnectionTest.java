@@ -10,7 +10,7 @@ import org.springframework.test.context.TestPropertySource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@TestPropertySource(properties = "jasypt.encryptor.enabled=false")
+@TestPropertySource(properties = {"jasypt.encryptor.enabled=false", "framework.connectors.rest.enabled=true", "framework.connectors.rest.authMode=bypass"})
 public class DatabaseConnectionTest {
 
     @Autowired

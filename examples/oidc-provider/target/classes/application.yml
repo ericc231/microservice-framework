@@ -1,0 +1,14 @@
+server:
+  port: 8083
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: oidc
+  routing:
+    - processName: "oidc-auth-process"
+      triggers:
+        - type: "rest"
+          path: "/auth/oidc"
+          method: "GET"

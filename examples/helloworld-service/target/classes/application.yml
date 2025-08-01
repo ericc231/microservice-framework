@@ -1,0 +1,7 @@
+framework:
+  routing:
+    - processName: "helloworld-process"
+      triggers:
+        - type: "rest"
+          path: "/hello"
+          method: "GET"

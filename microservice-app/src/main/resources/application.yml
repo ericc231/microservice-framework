@@ -17,6 +17,7 @@ framework:
   connectors:
     rest:
       enabled: true
+      authMode: bypass
     kafka:
       enabled: false
       bootstrap-servers: "localhost:9092"

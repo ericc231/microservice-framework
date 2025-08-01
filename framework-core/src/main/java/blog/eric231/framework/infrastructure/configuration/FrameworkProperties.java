@@ -23,6 +23,7 @@ public class FrameworkProperties {
     @Data
     public static class Rest {
         private boolean enabled;
+        private String authMode = "bypass"; // New property for authentication mode
     }
 
     @Data
