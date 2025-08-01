@@ -72,6 +72,64 @@ To extend the application with custom business logic or components, simply place
 
 Refer to `microservice-app/src/main/resources/application.yml` for framework configuration, including connector enablement and routing rules.
 
+### Database Configuration
+
+This framework uses Spring Data JPA with HikariCP for database connection pooling. By default, it's configured to use an in-memory H2 database for development and testing purposes.
+
+**Default H2 Configuration (`microservice-app/src/main/resources/application.yml`):**
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+```
+
+**Switching to Other Databases (e.g., PostgreSQL, MySQL):**
+
+To use a different database, you need to:
+
+1.  **Add the appropriate JDBC driver dependency** to `microservice-parent/pom.xml` (or `framework-core/pom.xml` if only that module needs it). For example, for PostgreSQL:
+
+    ```xml
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    ```
+
+2.  **Update `microservice-app/src/main/resources/application.yml`** with your database's connection details and driver class. For example, for PostgreSQL:
+
+    ```yaml
+    spring:
+      datasource:
+        url: jdbc:postgresql://localhost:5432/your-database
+        username: your-username
+        password: your-password
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        database-platform: org.hibernate.dialect.PostgreSQLDialect # Or appropriate dialect for your DB
+        hibernate:
+          ddl-auto: update # Consider 'none' or 'validate' for production
+      # HikariCP specific properties (optional, but recommended for fine-tuning)
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+    ```
+
 ## Contributing
 
 Feel free to contribute to this project by submitting issues or pull requests.

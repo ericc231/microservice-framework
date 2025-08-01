@@ -30,10 +30,10 @@ class ProcessRegistryTest {
     void testRegisterProcesses() {
         // Mock a BusinessProcess bean
         EchoService echoService = new EchoService();
-        Map<String, Object> beans = new HashMap<>();
+        Map<String, BusinessProcess> beans = new HashMap<>();
         beans.put("echo-service", echoService);
 
-        when(applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Component.class)).thenReturn(beans);
+        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(beans);
 
         processRegistry.registerProcesses();
 
@@ -44,7 +44,7 @@ class ProcessRegistryTest {
 
     @Test
     void testGetProcessNotFound() {
-        when(applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Component.class)).thenReturn(Collections.emptyMap());
+        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(Collections.emptyMap());
         processRegistry.registerProcesses();
 
         BusinessProcess retrievedProcess = processRegistry.getProcess("non-existent-service");
@@ -53,11 +53,7 @@ class ProcessRegistryTest {
 
     @Test
     void testRegisterProcessesWithNonBusinessProcessBeans() {
-        Object nonProcessBean = new Object();
-        Map<String, Object> beans = new HashMap<>();
-        beans.put("someOtherBean", nonProcessBean);
-
-        when(applicationContext.getBeansWithAnnotation(org.springframework.stereotype.Component.class)).thenReturn(beans);
+        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(Collections.emptyMap());
 
         processRegistry.registerProcesses();
 

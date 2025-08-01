@@ -2,14 +2,15 @@ package blog.eric231.framework.infrastructure.configuration;
 
 import blog.eric231.framework.application.usecase.BusinessProcess;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class ProcessRegistry {
+public class ProcessRegistry implements ApplicationListener<ContextRefreshedEvent> {
 
     private final ApplicationContext applicationContext;
     private final Map<String, BusinessProcess> processMap = new HashMap<>();
@@ -18,13 +19,15 @@ public class ProcessRegistry {
         this.applicationContext = applicationContext;
     }
 
-    @PostConstruct
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        registerProcesses();
+    }
+
     public void registerProcesses() {
-        Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(Component.class);
-        for (Map.Entry<String, Object> entry : beansWithAnnotation.entrySet()) {
-            if (entry.getValue() instanceof BusinessProcess) {
-                processMap.put(entry.getKey(), (BusinessProcess) entry.getValue());
-            }
+        Map<String, BusinessProcess> beansOfType = applicationContext.getBeansOfType(BusinessProcess.class);
+        for (Map.Entry<String, BusinessProcess> entry : beansOfType.entrySet()) {
+            processMap.put(entry.getKey(), entry.getValue());
         }
     }
 
