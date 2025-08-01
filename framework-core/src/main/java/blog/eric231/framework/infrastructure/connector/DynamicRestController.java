@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @RestController
 @ConditionalOnProperty(name = "framework.connectors.rest.enabled", havingValue = "true")
@@ -48,7 +49,7 @@ public class DynamicRestController {
         return frameworkProperties.getRouting().stream()
                 .filter(routing -> routing.getTriggers().stream()
                         .anyMatch(trigger -> "rest".equalsIgnoreCase(trigger.getType()) &&
-                                path.equals(trigger.getPath()) &&
+                                Pattern.matches(trigger.getPath(), path) &&
                                 method.equalsIgnoreCase(trigger.getMethod())))
                 .findFirst();
     }

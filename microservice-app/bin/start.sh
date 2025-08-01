@@ -21,6 +21,7 @@ start() {
 
     # Default Java options
     JAVA_OPTS="-Xms256m -Xmx512m"
+    LOADER_PATH="config/,extensions/"
 
     # Check for startup mode
     if [ "$1" == "debug" ]; then
@@ -37,8 +38,13 @@ start() {
         echo "Starting in NORMAL mode."
     fi
 
+    # Add extra classpath from environment variable if set
+    if [ -n "$MICROSERVICE_APP_EXTRA_CLASSPATH" ]; then
+        LOADER_PATH="$MICROSERVICE_APP_EXTRA_CLASSPATH,$LOADER_PATH"
+    fi
+
     # Start the application in the background
-    nohup java $JAVA_OPTS -Dloader.path=extensions/ -jar $APP_JAR > $LOG_FILE 2>&1 &
+    nohup java $JAVA_OPTS -Dloader.path=$LOADER_PATH -jar $APP_JAR > $LOG_FILE 2>&1 &
 
     # Store the process ID
     echo $! > $PID_FILE

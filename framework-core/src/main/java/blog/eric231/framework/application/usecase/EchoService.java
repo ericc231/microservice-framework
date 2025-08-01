@@ -1,9 +1,9 @@
 package blog.eric231.framework.application.usecase;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.stereotype.Component;
+import blog.eric231.framework.application.usecase.BP;
 
-@Component("echo-service")
+@BP("echo-service")
 public class EchoService implements BusinessProcess {
     @Override
     public JsonNode handle(JsonNode request) {

@@ -19,6 +19,11 @@
 	<modules>
 		<module>framework-core</module>
 		<module>microservice-app</module>
+		<module>examples/helloworld-service</module>
+		<module>examples/ldap-provider</module>
+		<module>examples/oidc-provider</module>
+		<module>examples/mtls-provider</module>
+		<module>examples/basic-auth-provider</module>
 	</modules>
 
 	<dependencyManagement>

@@ -1,0 +1,8 @@
+framework:
+  security:
+    self-signed-cert:
+      enabled: true
+
+my:
+  secret:
+    property: ENC(i2f5sJmGgP6yqBPnM+2LCA==)

@@ -1,5 +1,6 @@
 package blog.eric231.framework.infrastructure.configuration;
 
+import blog.eric231.framework.application.usecase.BP;
 import blog.eric231.framework.application.usecase.BusinessProcess;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -25,9 +26,16 @@ public class ProcessRegistry implements ApplicationListener<ContextRefreshedEven
     }
 
     public void registerProcesses() {
-        Map<String, BusinessProcess> beansOfType = applicationContext.getBeansOfType(BusinessProcess.class);
-        for (Map.Entry<String, BusinessProcess> entry : beansOfType.entrySet()) {
-            processMap.put(entry.getKey(), entry.getValue());
+        Map<String, Object> beansWithBPAnnotation = applicationContext.getBeansWithAnnotation(BP.class);
+        for (Map.Entry<String, Object> entry : beansWithBPAnnotation.entrySet()) {
+            if (entry.getValue() instanceof BusinessProcess) {
+                String processName = entry.getKey();
+                BP bpAnnotation = applicationContext.findAnnotationOnBean(processName, BP.class);
+                if (bpAnnotation != null && !bpAnnotation.value().isEmpty()) {
+                    processName = bpAnnotation.value();
+                }
+                processMap.put(processName, (BusinessProcess) entry.getValue());
+            }
         }
     }
 

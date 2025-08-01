@@ -1,8 +1,8 @@
 package blog.eric231.framework.infrastructure.configuration;
 
+import blog.eric231.framework.application.usecase.BP;
 import blog.eric231.framework.application.usecase.BusinessProcess;
 import blog.eric231.framework.application.usecase.EchoService;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,13 +27,24 @@ class ProcessRegistryTest {
     }
 
     @Test
-    void testRegisterProcesses() {
-        // Mock a BusinessProcess bean
+    void testRegisterProcessesWithBPAnnotationWithValue() {
+        // Mock a BusinessProcess bean with @BP annotation that has a value
         EchoService echoService = new EchoService();
-        Map<String, BusinessProcess> beans = new HashMap<>();
-        beans.put("echo-service", echoService);
+        Map<String, Object> beans = new HashMap<>();
+        beans.put("echoService", echoService);
 
-        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(beans);
+        when(applicationContext.getBeansWithAnnotation(BP.class)).thenReturn(beans);
+        when(applicationContext.findAnnotationOnBean("echoService", BP.class)).thenReturn(new BP() {
+            @Override
+            public Class<? extends java.lang.annotation.Annotation> annotationType() {
+                return BP.class;
+            }
+
+            @Override
+            public String value() {
+                return "echo-service";
+            }
+        });
 
         processRegistry.registerProcesses();
 
@@ -43,21 +54,44 @@ class ProcessRegistryTest {
     }
 
     @Test
-    void testGetProcessNotFound() {
-        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(Collections.emptyMap());
+    void testRegisterProcessesWithBPAnnotationWithoutValue() {
+        // Mock a BusinessProcess bean with @BP annotation that does not have a value
+        class AnotherBusinessProcess implements BusinessProcess {
+            @Override
+            public com.fasterxml.jackson.databind.JsonNode handle(com.fasterxml.jackson.databind.JsonNode request) {
+                return null;
+            }
+        }
+        AnotherBusinessProcess anotherProcess = new AnotherBusinessProcess();
+        Map<String, Object> beans = new HashMap<>();
+        beans.put("anotherBusinessProcess", anotherProcess);
+
+        when(applicationContext.getBeansWithAnnotation(BP.class)).thenReturn(beans);
+        when(applicationContext.findAnnotationOnBean("anotherBusinessProcess", BP.class)).thenReturn(new BP() {
+            @Override
+            public Class<? extends java.lang.annotation.Annotation> annotationType() {
+                return BP.class;
+            }
+
+            @Override
+            public String value() {
+                return "";
+            }
+        });
+
         processRegistry.registerProcesses();
 
-        BusinessProcess retrievedProcess = processRegistry.getProcess("non-existent-service");
-        assertNull(retrievedProcess);
+        BusinessProcess retrievedProcess = processRegistry.getProcess("anotherBusinessProcess");
+        assertNotNull(retrievedProcess);
+        assertEquals(anotherProcess, retrievedProcess);
     }
 
     @Test
-    void testRegisterProcessesWithNonBusinessProcessBeans() {
-        when(applicationContext.getBeansOfType(BusinessProcess.class)).thenReturn(Collections.emptyMap());
-
+    void testGetProcessNotFound() {
+        when(applicationContext.getBeansWithAnnotation(BP.class)).thenReturn(Collections.emptyMap());
         processRegistry.registerProcesses();
 
-        BusinessProcess retrievedProcess = processRegistry.getProcess("someOtherBean");
+        BusinessProcess retrievedProcess = processRegistry.getProcess("non-existent-service");
         assertNull(retrievedProcess);
     }
 

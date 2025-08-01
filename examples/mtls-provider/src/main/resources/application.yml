@@ -1,0 +1,14 @@
+server:
+  port: 8084
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: mtls
+  routing:
+    - processName: "mtls-auth-process"
+      triggers:
+        - type: "rest"
+          path: "/auth/mtls"
+          method: "POST"

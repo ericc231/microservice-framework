@@ -5,11 +5,11 @@ This is a Spring Boot microservice framework designed with Clean Architecture pr
 ## Features
 
 *   **Clean Architecture:** Structured for clear separation of concerns (Domain, Application, Infrastructure).
-*   **Configurable Connectors:** Supports dynamic routing of requests to business processes via configuration.
+*   **Configurable Connectors & Dynamic Routing:** Supports dynamic routing of REST requests to business processes via configuration, leveraging the `@BP` annotation for process identification.
 *   **Pseudo-White-Box Secret Management:** Securely manages sensitive information using an obfuscated secret reconstruction mechanism.
 *   **Self-Signed SSL Certificate:** Automatic generation of self-signed certificates for local development.
 *   **Operational Scripts:** Includes `start.sh` and `stop.sh` scripts for easy service management, supporting normal, debug, and OpenTelemetry agent modes.
-*   **Extension Mechanism:** Supports loading custom business logic or components from external JAR files placed in the `extensions` directory.
+*   **Extension Mechanism:** Supports loading custom business logic or components from external JAR files placed in the `extensions` directory. Business processes defined in extensions can be dynamically routed.
 
 ## Getting Started
 
@@ -57,6 +57,10 @@ cd microservice-parent/microservice-app/bin
 ./start.sh otel
 ```
 
+**Configuration Files:**
+
+Application configuration files (e.g., `application.yml`) can be placed in the `microservice-app/config` directory. This directory is automatically added to the classpath at startup, allowing for externalized configuration.
+
 ### Stopping the Application
 
 ```bash
@@ -67,6 +71,17 @@ cd microservice-parent/microservice-app/bin
 ## Extension Mechanism
 
 To extend the application with custom business logic or components, simply place your compiled JAR files into the `microservice-parent/microservice-app/extensions` directory. These JARs will be automatically added to the application's classpath at startup.
+
+## Examples
+
+This framework includes example microservices to demonstrate its capabilities. Each example is a separate Maven module located in the `examples/` directory. For detailed instructions on each example, please refer to their respective `README.md` files.
+
+*   **Helloworld Service Example:** A simple REST service returning "Hello, World!". ([`examples/helloworld-service/README.md`](examples/helloworld-service/README.md))
+*   **Basic Auth Provider Example:** Demonstrates basic authentication using an in-memory H2 database. ([`examples/basic-auth-provider/README.md`](examples/basic-auth-provider/README.md))
+*   **LDAP Provider Example:** Placeholder for LDAP authentication server. ([`examples/ldap-provider/README.md`](examples/ldap-provider/README.md))
+*   **OIDC Provider Example:** Placeholder for OIDC authentication server. ([`examples/oidc-provider/README.md`](examples/oidc-provider/README.md))
+*   **mTLS Provider Example:** Placeholder for mTLS authentication server. ([`examples/mtls-provider/README.md`](examples/mtls-provider/README.md))
+
 
 ## Configuration
 
