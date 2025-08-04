@@ -1,0 +1,51 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ldap-auth-rest
+  
+  # LDAP Configuration
+  ldap:
+    urls: ldap://localhost:8389
+    base: dc=springframework,dc=org
+    username: # Leave empty for anonymous access
+    password: # Leave empty for anonymous access
+    
+  # Thymeleaf template configuration
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+framework:
+  adapters:
+    rest:
+      enabled: true
+      authMode: ldap
+  security:
+    self-signed-cert:
+      enabled: false
+  ldap:
+    url: ldap://localhost:8389
+    baseDn: dc=springframework,dc=org
+    userDnPattern: uid={0},ou=people,dc=springframework,dc=org
+    groupSearchBase: ou=groups,dc=springframework,dc=org
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    blog.eric231.examples.ldapauthrest: DEBUG
+    org.springframework.security: INFO
+    org.springframework.ldap: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
