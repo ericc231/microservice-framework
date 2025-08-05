@@ -1,71 +1,102 @@
-# Microservice Framework
+# Microservice Framework Core
 
-This is a Spring Boot microservice framework designed with Clean Architecture principles. It aims to provide a robust and extensible foundation for building microservices, abstracting away communication protocols into configurable connectors.
+This is the core library of a Spring Boot microservice framework designed with Clean Architecture principles. It provides a robust and extensible foundation for building microservices with configurable connectors and domain logic patterns.
 
 ## Features
 
 *   **Clean Architecture:** Structured for clear separation of concerns (Domain, Application, Infrastructure).
+*   **@DL Domain Logic Pattern:** Automatic discovery and registration of domain logic components using @DL annotation.
+*   **@BP Business Process Pattern:** Support for business process identification and routing using @BP annotation.
 *   **Configurable Connectors:** Supports dynamic routing of requests to business processes via configuration.
+*   **Extension Mechanism:** Supports loading custom business logic from external JAR files.
 *   **Pseudo-White-Box Secret Management:** Securely manages sensitive information using an obfuscated secret reconstruction mechanism.
-*   **Self-Signed SSL Certificate:** Automatic generation of self-signed certificates for local development.
-*   **Operational Scripts:** Includes `start.sh` and `stop.sh` scripts for easy service management, supporting normal, debug, and OpenTelemetry agent modes.
+*   **JPA and Database Support:** Built-in support for JPA with HikariCP connection pooling.
+*   **Process Registry:** Automatic registration and discovery of business processes and domain logic components.
 
-## Getting Started
+## Architecture
 
-### Prerequisites
+The framework core provides the following key components:
 
-*   Java 17 or higher
-*   Maven
+### Domain Logic (@DL) Pattern
 
-### Build the Project
+Domain logic components are identified using the `@DL` annotation:
 
-Navigate to the `microservice-framework` directory and build the project:
+```java
+@DL("domain-identifier")
+@Component
+public class MyDomainLogic {
+    // Domain logic implementation
+}
+```
+
+### Business Process (@BP) Pattern
+
+Business processes are identified using the `@BP` annotation:
+
+```java
+@BP("process-identifier")
+@Component
+public class MyBusinessProcess {
+    // Business process implementation
+}
+```
+
+### Process Registry
+
+The `ProcessRegistry` automatically discovers and registers all components with @DL and @BP annotations, enabling:
+
+- Dynamic service discovery
+- Automatic routing configuration
+- Extension loading support
+
+## Usage
+
+### As a Dependency
+
+Add the framework core as a dependency in your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>blog.eric231</groupId>
+    <artifactId>framework-core</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+### Building the Core
+
+Navigate to the root directory and build:
 
 ```bash
-cd microservice-framework
 mvn clean install
 ```
 
-### Generate Pseudo-White-Box Secret Files
+## Database Configuration
 
-Before running the application, you need to generate the `secret.table` and `secret.recipe` files. These files contain the obfuscated master password for Jasypt.
+The framework includes JPA support with HikariCP connection pooling. Default configuration uses H2 in-memory database:
 
-1.  **Run the generator tool:**
-    ```bash
-    # From the microservice-framework directory
-    java -cp target/microservice-framework-0.0.1-SNAPSHOT.jar blog.eric231.framework.infrastructure.security.PseudoWhiteBoxGenerator
-    ```
-    This will create `secret.table` and `secret.recipe` in your current directory.
-
-2.  **Move the generated files:** Ensure `secret.table` and `secret.recipe` are in a location accessible by the application at runtime (e.g., in the same directory as the JAR, or specify their paths in `application.yml`).
-
-### Running the Application
-
-Navigate to the `bin` directory and use the provided scripts:
-
-```bash
-cd microservice-framework/bin
-
-# Normal mode
-./start.sh
-
-# Debug mode (listens on port 5005)
-./start.sh debug
-
-# OpenTelemetry Agent mode (requires opentelemetry-javaagent.jar in the bin directory)
-./start.sh otel
+```yaml
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
 ```
 
-### Stopping the Application
+## Security Features
 
-```bash
-cd microservice-framework/bin
-./stop.sh
-```
+### Pseudo-White-Box Secret Management
 
-## Configuration
+The framework includes a secure secret management system using obfuscated reconstruction:
 
-Refer to `src/main/resources/application.yml` for framework configuration, including connector enablement and routing rules.
+- **PseudoWhiteBoxGenerator**: Generates secret files
+- **PseudoWhiteBoxSecretResolver**: Reconstructs secrets at runtime
+- **Jasypt Integration**: Encrypts sensitive configuration values
 
 ## Contributing
 

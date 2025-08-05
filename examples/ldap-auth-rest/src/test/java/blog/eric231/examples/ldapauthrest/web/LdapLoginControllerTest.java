@@ -1,0 +1,145 @@
+package blog.eric231.examples.ldapauthrest.web;
+
+import blog.eric231.examples.ldapauthrest.domain.LdapAuthenticationDomainLogic;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Map;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(LdapLoginController.class)
+class LdapLoginControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private LdapAuthenticationDomainLogic ldapDomainLogic;
+
+    @Test
+    void login_ShouldReturnLdapLoginPage() throws Exception {
+        Map<String, Object> mockServerStatus = Map.of(
+            "serverUrl", "ldap://localhost:8389",
+            "connected", true,
+            "status", "Available"
+        );
+        
+        when(ldapDomainLogic.getLdapServerStatus()).thenReturn(mockServerStatus);
+
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("ldap-login"))
+                .andExpect(model().attributeExists("ldapServer"));
+    }
+
+    @Test
+    @WithMockUser(username = "ben", roles = {"USER"})
+    void dashboard_WithAuth_ShouldReturnLdapDashboard() throws Exception {
+        Map<String, Object> mockUser = Map.of(
+            "username", "ben",
+            "authenticated", true,
+            "authType", "LDAP"
+        );
+        
+        Map<String, Object> mockServerStatus = Map.of(
+            "serverUrl", "ldap://localhost:8389",
+            "connected", true
+        );
+        
+        when(ldapDomainLogic.getCurrentUser()).thenReturn(mockUser);
+        when(ldapDomainLogic.getLdapServerStatus()).thenReturn(mockServerStatus);
+
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("ldap-dashboard"))
+                .andExpect(model().attributeExists("user"))
+                .andExpect(model().attributeExists("ldapServer"))
+                .andExpect(model().attribute("service", "LDAP Auth REST Service"));
+    }
+
+    @Test
+    @WithMockUser(username = "ben", roles = {"USER"})
+    void profile_WithAuth_ShouldReturnLdapProfile() throws Exception {
+        Map<String, Object> mockUser = Map.of(
+            "username", "ben",
+            "authenticated", true,
+            "authType", "LDAP",
+            "dn", "uid=ben,ou=people,dc=springframework,dc=org"
+        );
+        
+        Map<String, Object> mockGroups = Map.of(
+            "groups", java.util.List.of("users"),
+            "roles", java.util.List.of("ROLE_USER")
+        );
+        
+        Map<String, Object> mockServerStatus = Map.of(
+            "connected", true
+        );
+        
+        when(ldapDomainLogic.getCurrentUser()).thenReturn(mockUser);
+        when(ldapDomainLogic.getUserGroups()).thenReturn(mockGroups);
+        when(ldapDomainLogic.getLdapServerStatus()).thenReturn(mockServerStatus);
+
+        mockMvc.perform(get("/profile"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("ldap-profile"))
+                .andExpect(model().attributeExists("user"))
+                .andExpect(model().attributeExists("groups"))
+                .andExpect(model().attributeExists("ldapServer"));
+    }
+
+    @Test
+    @WithMockUser(username = "bob", roles = {"ADMINS"})
+    void admin_WithAdminRole_ShouldReturnLdapAdminPage() throws Exception {
+        Map<String, Object> mockUser = Map.of(
+            "username", "bob",
+            "authenticated", true,
+            "authType", "LDAP",
+            "isAdmin", true
+        );
+        
+        Map<String, Object> mockServerStatus = Map.of(
+            "connected", true,
+            "serverUrl", "ldap://localhost:8389"
+        );
+        
+        when(ldapDomainLogic.getCurrentUser()).thenReturn(mockUser);
+        when(ldapDomainLogic.getLdapServerStatus()).thenReturn(mockServerStatus);
+        when(ldapDomainLogic.hasRole("ADMIN")).thenReturn(true);
+        when(ldapDomainLogic.hasRole("ADMINS")).thenReturn(true);
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("ldap-admin"))
+                .andExpect(model().attributeExists("user"))
+                .andExpect(model().attributeExists("ldapServer"))
+                .andExpect(model().attributeExists("adminFeatures"));
+    }
+
+    @Test
+    @WithMockUser(username = "ben", roles = {"USER"})
+    void admin_WithUserRole_ShouldReturnDashboardWithError() throws Exception {
+        Map<String, Object> mockUser = Map.of(
+            "username", "ben",
+            "authenticated", true,
+            "authType", "LDAP",
+            "isAdmin", false
+        );
+        
+        when(ldapDomainLogic.getCurrentUser()).thenReturn(mockUser);
+        when(ldapDomainLogic.hasRole("ADMIN")).thenReturn(false);
+        when(ldapDomainLogic.hasRole("ADMINS")).thenReturn(false);
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(status().isOk())
+                .andExpected(view().name("ldap-dashboard"))
+                .andExpected(model().attributeExists("error"));
+    }
+}

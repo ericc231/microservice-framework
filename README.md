@@ -76,11 +76,16 @@ To extend the application with custom business logic or components, simply place
 
 This framework includes example microservices to demonstrate its capabilities. Each example is a separate Maven module located in the `examples/` directory. For detailed instructions on each example, please refer to their respective `README.md` files.
 
-*   **Helloworld Service Example:** A simple REST service returning "Hello, World!". ([`examples/helloworld-service/README.md`](examples/helloworld-service/README.md))
+### Authentication Providers
 *   **Basic Auth Provider Example:** Demonstrates basic authentication using an in-memory H2 database. ([`examples/basic-auth-provider/README.md`](examples/basic-auth-provider/README.md))
-*   **LDAP Provider Example:** Placeholder for LDAP authentication server. ([`examples/ldap-provider/README.md`](examples/ldap-provider/README.md))
+*   **LDAP Provider Example:** LDAP authentication server with embedded LDAP directory. ([`examples/ldap-provider/README.md`](examples/ldap-provider/README.md))
 *   **OIDC Provider Example:** Placeholder for OIDC authentication server. ([`examples/oidc-provider/README.md`](examples/oidc-provider/README.md))
 *   **mTLS Provider Example:** Placeholder for mTLS authentication server. ([`examples/mtls-provider/README.md`](examples/mtls-provider/README.md))
+
+### REST Services with Authentication
+*   **Helloworld Service Example:** A simple REST service returning "Hello, World!". ([`examples/helloworld-service/README.md`](examples/helloworld-service/README.md))
+*   **Basic Auth REST Service:** Comprehensive REST API with basic authentication using @DL domain logic pattern. Provides both API endpoints and web interface with role-based access control.
+*   **LDAP Auth REST Service:** Full-featured REST API with LDAP authentication using @DL domain logic pattern. Includes LDAP user management, group membership, and role-based authorization.
 
 
 ## Configuration
