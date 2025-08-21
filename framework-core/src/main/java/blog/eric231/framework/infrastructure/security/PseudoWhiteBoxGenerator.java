@@ -2,11 +2,16 @@ package blog.eric231.framework.infrastructure.security;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class PseudoWhiteBoxGenerator {
 
@@ -21,22 +26,31 @@ public class PseudoWhiteBoxGenerator {
      * @param recipePath The path to save the secret.recipe file.
      * @throws IOException If an I/O error occurs.
      */
-    public static void generate(String secret, String tablePath, String recipePath) throws IOException {
+    public static void generate(String secret, String tablePath, String recipePath) throws Exception {
         char[] secretChars = secret.toCharArray();
         int secretLength = secretChars.length;
 
-        // 1. Generate the shuffled character list (secret.table)
+        // 1. Create a comprehensive character table (all printable ASCII characters)
+        StringBuilder tableContent = new StringBuilder();
+        // Add printable ASCII characters (32-126)
+        for (int i = 32; i <= 126; i++) {
+            tableContent.append((char) i);
+        }
+        // Add some additional dummy characters to obfuscate
+        SecureRandom random = new SecureRandom();
+        for (int i = 0; i < 32; i++) {
+            tableContent.append((char) (random.nextInt(26) + 'a'));
+        }
+        
+        // Shuffle the character table
         List<Character> charList = new ArrayList<>();
-        for (char c : secretChars) {
+        for (char c : tableContent.toString().toCharArray()) {
             charList.add(c);
         }
-        // Add some dummy characters to make it harder to guess the length
-        for (int i = 0; i < Math.max(16, secretLength * 2); i++) {
-            charList.add((char) (new SecureRandom().nextInt(26) + 'a'));
-        }
-        Collections.shuffle(charList);
-
-        StringBuilder tableContent = new StringBuilder();
+        Collections.shuffle(charList, random);
+        
+        // Rebuild table content from shuffled list
+        tableContent = new StringBuilder();
         for (Character c : charList) {
             tableContent.append(c);
         }
@@ -44,12 +58,15 @@ public class PseudoWhiteBoxGenerator {
         // 2. Generate the recipe (secret.recipe)
         Properties recipe = new Properties();
         int[] indices = new int[secretLength];
+        String tableStr = tableContent.toString();
         for (int i = 0; i < secretLength; i++) {
-            indices[i] = charList.indexOf(secretChars[i]);
+            indices[i] = tableStr.indexOf(secretChars[i]);
+            if (indices[i] == -1) {
+                throw new IllegalArgumentException("Character '" + secretChars[i] + "' not found in character table");
+            }
         }
 
         // 3. Generate salt and iterations for obfuscation
-        SecureRandom random = new SecureRandom();
         byte[] salt = new byte[SALT_LENGTH];
         random.nextBytes(salt);
         int iterations = ITERATION_BASE + random.nextInt(1000);
@@ -57,13 +74,33 @@ public class PseudoWhiteBoxGenerator {
         // 4. Obfuscate indices
         int[] obfuscatedIndices = new int[secretLength];
         for (int i = 0; i < secretLength; i++) {
-            obfuscatedIndices[i] = indices[i] ^ (iterations + i) ^ salt[i % SALT_LENGTH];
+            obfuscatedIndices[i] = indices[i] ^ (iterations + i) ^ (salt[i % SALT_LENGTH] & 0xFF);
         }
 
-        // 5. Save the recipe
+        // 5. Encrypt the indices with AES
+        String indicesHex = intArrayToString(obfuscatedIndices);
+        byte[] tableBytes = tableContent.toString().getBytes();
+        
+        // AES Key is SHA-256 of the table
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] aesKeyBytes = sha256.digest(tableBytes);
+        SecretKeySpec secretKey = new SecretKeySpec(aesKeyBytes, "AES");
+        
+        // IV is MD5 of the salt
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        byte[] ivBytes = md5.digest(bytesToHex(salt).getBytes(StandardCharsets.UTF_8));
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
+        
+        // Encrypt the indices
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec);
+        byte[] encryptedIndices = cipher.doFinal(indicesHex.getBytes(StandardCharsets.UTF_8));
+        String encryptedIndicesHex = bytesToHex(encryptedIndices);
+
+        // 6. Save the recipe
         recipe.setProperty("salt", bytesToHex(salt));
         recipe.setProperty("iterations", String.valueOf(iterations));
-        recipe.setProperty("indices", intArrayToString(obfuscatedIndices));
+        recipe.setProperty("password", encryptedIndicesHex);
 
         // Write files
         try (FileOutputStream tableOut = new FileOutputStream(tablePath)) {
@@ -77,11 +114,8 @@ public class PseudoWhiteBoxGenerator {
 
     private static String intArrayToString(int[] array) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < array.length; i++) {
-            sb.append(array[i]);
-            if (i < array.length - 1) {
-                sb.append(",");
-            }
+        for (int value : array) {
+            sb.append(String.format("%04x", value));
         }
         return sb.toString();
     }
@@ -94,7 +128,7 @@ public class PseudoWhiteBoxGenerator {
         return sb.toString();
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         // --- Usage Example ---
         // Replace with your actual secret password
         String mySecretPassword = "ThisIsAStrongPasswordForJasypt!";

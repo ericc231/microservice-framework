@@ -20,7 +20,7 @@ public class JasyptConfig {
     private PseudoWhiteBoxReader pseudoWhiteBoxReader;
 
     @Bean(name = "jasyptStringEncryptor")
-    public StringEncryptor jasyptStringEncryptor() throws IOException {
+    public StringEncryptor jasyptStringEncryptor() throws Exception {
         PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
         SimpleStringPBEConfig config = new SimpleStringPBEConfig();
         config.setPassword(pseudoWhiteBoxReader.reconstructKey("secret.table", "secret.recipe"));

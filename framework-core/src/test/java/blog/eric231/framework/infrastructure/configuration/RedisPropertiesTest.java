@@ -8,13 +8,13 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for RedisProperties configuration class
+ * Unit tests for FrameworkRedisProperties configuration class
  */
 class RedisPropertiesTest {
     
     @Test
     void testDefaultValues() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         
         assertEquals("standalone", properties.getMode());
         assertEquals(Duration.ofMillis(2000), properties.getTimeout());
@@ -22,19 +22,19 @@ class RedisPropertiesTest {
         assertNull(properties.getPassword());
         
         // Test standalone defaults
-        RedisProperties.Standalone standalone = properties.getStandalone();
+        FrameworkRedisProperties.Standalone standalone = properties.getStandalone();
         assertNotNull(standalone);
         assertEquals("localhost", standalone.getHost());
         assertEquals(6379, standalone.getPort());
         
         // Test cluster defaults
-        RedisProperties.Cluster cluster = properties.getCluster();
+        FrameworkRedisProperties.Cluster cluster = properties.getCluster();
         assertNotNull(cluster);
         assertNull(cluster.getNodes());
         assertEquals(3, cluster.getMaxRedirects());
         
         // Test pool defaults
-        RedisProperties.Pool pool = properties.getPool();
+        FrameworkRedisProperties.Pool pool = properties.getPool();
         assertNotNull(pool);
         assertEquals(8, pool.getMaxTotal());
         assertEquals(8, pool.getMaxIdle());
@@ -44,13 +44,13 @@ class RedisPropertiesTest {
     
     @Test
     void testStandaloneConfiguration() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         properties.setMode("standalone");
         properties.setDatabase(1);
         properties.setPassword("testpass");
         properties.setTimeout(Duration.ofMillis(5000));
         
-        RedisProperties.Standalone standalone = properties.getStandalone();
+        FrameworkRedisProperties.Standalone standalone = properties.getStandalone();
         standalone.setHost("redis-server");
         standalone.setPort(6380);
         
@@ -64,11 +64,11 @@ class RedisPropertiesTest {
     
     @Test
     void testClusterConfiguration() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         properties.setMode("cluster");
         properties.setPassword("clusterpass");
         
-        RedisProperties.Cluster cluster = properties.getCluster();
+        FrameworkRedisProperties.Cluster cluster = properties.getCluster();
         cluster.setNodes(Arrays.asList("node1:7001", "node2:7002", "node3:7003"));
         cluster.setMaxRedirects(5);
         
@@ -83,8 +83,8 @@ class RedisPropertiesTest {
     
     @Test
     void testPoolConfiguration() {
-        RedisProperties properties = new RedisProperties();
-        RedisProperties.Pool pool = properties.getPool();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
+        FrameworkRedisProperties.Pool pool = properties.getPool();
         
         pool.setMaxTotal(20);
         pool.setMaxIdle(15);
@@ -99,7 +99,7 @@ class RedisPropertiesTest {
     
     @Test
     void testCompleteConfiguration() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         
         // Main configuration
         properties.setMode("cluster");
@@ -108,17 +108,17 @@ class RedisPropertiesTest {
         properties.setTimeout(Duration.ofMillis(10000));
         
         // Standalone configuration (should be ignored in cluster mode)
-        RedisProperties.Standalone standalone = properties.getStandalone();
+        FrameworkRedisProperties.Standalone standalone = properties.getStandalone();
         standalone.setHost("ignored-host");
         standalone.setPort(9999);
         
         // Cluster configuration
-        RedisProperties.Cluster cluster = properties.getCluster();
+        FrameworkRedisProperties.Cluster cluster = properties.getCluster();
         cluster.setNodes(Arrays.asList("cluster1:7001", "cluster2:7002", "cluster3:7003"));
         cluster.setMaxRedirects(10);
         
         // Pool configuration
-        RedisProperties.Pool pool = properties.getPool();
+        FrameworkRedisProperties.Pool pool = properties.getPool();
         pool.setMaxTotal(50);
         pool.setMaxIdle(25);
         pool.setMinIdle(10);
@@ -147,11 +147,11 @@ class RedisPropertiesTest {
     
     @Test
     void testEqualsAndHashCode() {
-        RedisProperties properties1 = new RedisProperties();
+        FrameworkRedisProperties properties1 = new FrameworkRedisProperties();
         properties1.setMode("standalone");
         properties1.setDatabase(1);
         
-        RedisProperties properties2 = new RedisProperties();
+        FrameworkRedisProperties properties2 = new FrameworkRedisProperties();
         properties2.setMode("standalone");
         properties2.setDatabase(1);
         
@@ -166,7 +166,7 @@ class RedisPropertiesTest {
     
     @Test
     void testNestedObjectsNotNull() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         
         assertNotNull(properties.getStandalone());
         assertNotNull(properties.getCluster());

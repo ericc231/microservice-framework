@@ -1,0 +1,66 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:oidcdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  security:
+    oauth2:
+      client:
+        registration:
+          oidc-client:
+            client-id: oidc-client
+            client-secret: secret
+            scope: openid,profile,email,read,write
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8084/login/oauth2/code/oidc-client
+        provider:
+          oidc-client:
+            issuer-uri: http://localhost:8083
+            authorization-uri: http://localhost:8083/oauth2/authorize
+            token-uri: http://localhost:8083/oauth2/token
+            user-info-uri: http://localhost:8083/userinfo
+            jwk-set-uri: http://localhost:8083/oauth2/jwks
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8083
+          jwk-set-uri: http://localhost:8083/oauth2/jwks
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: oidc
+  routing:
+    - processName: "user-profile-process"
+      triggers:
+        - type: "rest"
+          path: "/api/user/profile"
+          method: "GET"
+    - processName: "user-list-process"
+      triggers:
+        - type: "rest"
+          path: "/api/users"
+          method: "GET"
+    - processName: "create-user-process"
+      triggers:
+        - type: "rest"
+          path: "/api/users"
+          method: "POST"
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG

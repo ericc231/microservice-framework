@@ -22,9 +22,18 @@ public class PseudoWhiteBoxReader {
             recipe.load(recipeIn);
         }
         String salt = recipe.getProperty("salt");
+        String iterationsStr = recipe.getProperty("iterations");
         String encryptedIndicesHex = recipe.getProperty("password");
+        
+        if (salt == null || iterationsStr == null || encryptedIndicesHex == null) {
+            throw new IllegalArgumentException("Recipe file is missing required properties");
+        }
+        
+        int iterations = Integer.parseInt(iterationsStr);
+        byte[] saltBytes = hexToBytes(salt);
 
         byte[] tableBytes = Files.readAllBytes(Paths.get(tablePath));
+        String tableContent = new String(tableBytes, StandardCharsets.UTF_8);
 
         // 2. Prepare for Decryption
         // AES Key is SHA-256 of the table
@@ -46,10 +55,21 @@ public class PseudoWhiteBoxReader {
 
         // 4. Reconstruct the Password
         StringBuilder secret = new StringBuilder();
+        int charIndex = 0;
         for (int i = 0; i < decryptedIndicesHex.length(); i += 4) {
             String hexIndex = decryptedIndicesHex.substring(i, i + 4);
-            int index = Integer.parseInt(hexIndex, 16);
-            secret.append((char) tableBytes[index]);
+            int obfuscatedIndex = Integer.parseInt(hexIndex, 16);
+            
+            // Reverse the XOR obfuscation: index ^ (iterations + charIndex) ^ salt[charIndex % SALT_LENGTH]
+            int deobfuscatedIndex = obfuscatedIndex ^ (iterations + charIndex) ^ (saltBytes[charIndex % saltBytes.length] & 0xFF);
+            
+            if (deobfuscatedIndex >= 0 && deobfuscatedIndex < tableContent.length()) {
+                secret.append(tableContent.charAt(deobfuscatedIndex));
+            } else {
+                throw new IllegalStateException("Deobfuscated index " + deobfuscatedIndex + " out of bounds for table length " + tableContent.length() + 
+                    " (original obfuscated: " + obfuscatedIndex + ", charIndex: " + charIndex + ", iterations: " + iterations + ")");
+            }
+            charIndex++;
         }
 
         return secret.toString();

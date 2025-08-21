@@ -1,6 +1,14 @@
-### LDAP Provider Example
+# LDAP Provider Example
 
-This example demonstrates how to configure the framework to act as an LDAP authentication server. It uses an embedded UnboundID LDAP server with a pre-configured LDIF file for user data.
+This example demonstrates how to configure the framework to act as an LDAP authentication server. It uses an embedded UnboundID LDAP server with a pre-configured LDIF file for user data and group management.
+
+## Features
+
+- **Embedded LDAP Server**: UnboundID LDAP server for testing
+- **Pre-configured Users**: LDIF file with test users and groups
+- **Group Management**: Organizational units and group memberships
+- **TLS Support**: LDAPS configuration with keystore
+- **Test Integration**: Perfect for testing LDAP authentication flows
 
 **Embedded LDAP Server Configuration:**
 

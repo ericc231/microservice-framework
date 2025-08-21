@@ -1,0 +1,329 @@
+package blog.eric231.examples.mtlsauthrest;
+
+import blog.eric231.examples.mtlsauthrest.domain.ClientSession;
+import blog.eric231.examples.mtlsauthrest.domain.ClientSessionRepository;
+import blog.eric231.examples.mtlsauthrest.logic.*;
+import blog.eric231.examples.mtlsauthrest.service.MtlsProviderService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+public class MtlsAuthRestIntegrationTest {
+
+    @Autowired
+    private ClientSessionRepository clientSessionRepository;
+
+    @Autowired
+    private CertificateProfileLogic certificateProfileLogic;
+
+    @Autowired
+    private CertificateValidationLogic certificateValidationLogic;
+
+    @Autowired
+    private SecureDataLogic secureDataLogic;
+
+    @Autowired
+    private ClientInfoLogic clientInfoLogic;
+
+    @Autowired
+    private MtlsProviderService mtlsProviderService;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String SAMPLE_CERTIFICATE = 
+        "-----BEGIN CERTIFICATE-----\n" +
+        "MIIDXTCCAkWgAwIBAgIJAKZpYqRhJCOdMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\n" +
+        "BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\n" +
+        "aWRnaXRzIFB0eSBMdGQwHhcNMjMwMTAxMDAwMDAwWhcNMjQwMTAxMDAwMDAwWjBF\n" +
+        "MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50\n" +
+        "ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\n" +
+        "CgKCAQEAwUXY4UDHH6aeJi7X4wJhzqfr5PpP2ByQ6JOb8zG7L9C5Y1d6K8G3h4A9\n" +
+        "fOYz8E6J2YNi5y6h9hzC4D5K8k1M6uP7vJ5lPo9D8F6n3c0z6M4Q2rT8U9b1k5W\n" +
+        "3g2Y8wF1j7l4S5t6H7i8R9q2N1m5P4k7L3b8V6c9E4d1T2a3G8h5I6j7K8l9M0n\n" +
+        "1o2P3q4R5s6T7u8V9w0X1y2Z3a4B5c6D7e8F9g0H1i2J3k4L5m6N7o8P9q0R1s2\n" +
+        "T3u4V5w6X7y8Z9a0B1c2D3e4F5g6H7i8J9k0L1m2N3o4P5q6R7s8T9u0V1w2X3y\n" +
+        "4Z5a6B7c8D9e0F1g2H3i4J5k6L7m8N9o0P1q2R3s4T5u6V7w8X9y0Z1a2B3c4D5e\n" +
+        "6F7g8H9iQIDAQABo1AwTjAdBgNVHQ4EFgQU6tN5/6Y3n6J2F4a7z8K9mPqN3LI=\n" +
+        "MB8GA1UdIwQYMBaAFOrTef+mN5+idheGu8/CvZj6jdyyMA0GCSqGSIb3DQEBCwUA\n" +
+        "A4IBAQCR5Y8l3n8D6p7R2i4t6u7W9z0a2b4c5D6E7F8G9H0I1J2K3L4M5N6O7P8Q\n" +
+        "9R0S1T2U3V4W5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W\n" +
+        "1X2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C\n" +
+        "3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1F2G3H4I\n" +
+        "-----END CERTIFICATE-----";
+
+    @BeforeEach
+    void setUp() {
+        clientSessionRepository.deleteAll();
+    }
+
+    @Test
+    void testClientSessionEntity() {
+        ClientSession session = new ClientSession();
+        session.setClientDN("CN=Test Client");
+        session.setCertificateFingerprint("test-fingerprint");
+        session.setSessionId(UUID.randomUUID().toString());
+        session.setClientIp("192.168.1.100");
+        session.setUserAgent("Test Agent");
+        session.setIsActive(true);
+
+        ClientSession saved = clientSessionRepository.save(session);
+        
+        assertNotNull(saved.getId());
+        assertNotNull(saved.getCreatedAt());
+        assertNotNull(saved.getLastAccessed());
+        assertEquals("CN=Test Client", saved.getClientDN());
+        assertEquals(0L, saved.getAccessCount());
+        assertTrue(saved.getIsActive());
+        
+        saved.incrementAccessCount();
+        assertEquals(1L, saved.getAccessCount());
+    }
+
+    @Test
+    void testClientSessionRepository() {
+        ClientSession session1 = createTestSession("CN=Client1", "fp1", "session1");
+        ClientSession session2 = createTestSession("CN=Client2", "fp2", "session2");
+        ClientSession inactiveSession = createTestSession("CN=Client3", "fp3", "session3");
+        inactiveSession.setIsActive(false);
+        
+        clientSessionRepository.save(session1);
+        clientSessionRepository.save(session2);
+        clientSessionRepository.save(inactiveSession);
+
+        assertEquals(3, clientSessionRepository.findAll().size());
+        assertEquals(2, clientSessionRepository.countActiveSessions());
+        
+        assertTrue(clientSessionRepository.existsByClientDNAndIsActiveTrue("CN=Client1"));
+        assertFalse(clientSessionRepository.existsByClientDNAndIsActiveTrue("CN=Client3"));
+        
+        List<ClientSession> activeSessions = clientSessionRepository.findByIsActiveTrueOrderByLastAccessedDesc();
+        assertEquals(2, activeSessions.size());
+    }
+
+    @Test
+    void testCertificateProfileLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode();
+        JsonNode response = certificateProfileLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("Client certificate authentication required", response.get("message").asText());
+    }
+
+    @Test
+    void testCertificateValidationLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode()
+            .put("certificate", SAMPLE_CERTIFICATE);
+        
+        JsonNode response = certificateValidationLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("Authentication required", response.get("message").asText());
+    }
+
+    @Test
+    void testCertificateValidationLogicWithMissingCertificate() {
+        JsonNode request = objectMapper.createObjectNode();
+        JsonNode response = certificateValidationLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertTrue(response.get("message").asText().contains("Authentication required") ||
+                  response.get("message").asText().contains("Certificate data is required"));
+    }
+
+    @Test
+    void testCertificateValidationLogicWithInvalidFormat() {
+        JsonNode request = objectMapper.createObjectNode()
+            .put("certificate", "invalid certificate data");
+        
+        JsonNode response = certificateValidationLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertTrue(response.get("message").asText().contains("Authentication required") ||
+                  response.get("message").asText().contains("Invalid certificate format"));
+    }
+
+    @Test
+    void testSecureDataLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode()
+            .put("dataType", "summary");
+        
+        JsonNode response = secureDataLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("mTLS authentication required for secure data access", response.get("message").asText());
+    }
+
+    @Test
+    void testSecureDataLogicDataTypes() {
+        // Create a test session first
+        ClientSession session = createTestSession("CN=Test Client", "fingerprint", "session-id");
+        clientSessionRepository.save(session);
+
+        String[] dataTypes = {"encryption-key", "session-stats", "secure-token", "client-activity", "summary"};
+        
+        for (String dataType : dataTypes) {
+            JsonNode request = objectMapper.createObjectNode()
+                .put("dataType", dataType);
+            
+            JsonNode response = secureDataLogic.execute(request);
+            
+            // Without authentication, all should fail
+            assertFalse(response.get("success").asBoolean());
+            assertEquals("mTLS authentication required for secure data access", response.get("message").asText());
+        }
+    }
+
+    @Test
+    void testClientInfoLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode();
+        JsonNode response = clientInfoLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("mTLS authentication required", response.get("message").asText());
+    }
+
+    @Test
+    void testMtlsProviderService() {
+        // Test provider availability (will likely fail in test environment)
+        boolean isAvailable = mtlsProviderService.isProviderAvailable();
+        // In test environment, provider is likely not available
+        assertFalse(isAvailable);
+
+        // Test certificate registration (will fail without provider)
+        JsonNode registrationResult = mtlsProviderService.registerCertificate(SAMPLE_CERTIFICATE);
+        assertFalse(registrationResult.get("success").asBoolean());
+        assertTrue(registrationResult.get("message").asText().contains("Failed to register certificate"));
+
+        // Test validation (will fail without provider)
+        JsonNode validationResult = mtlsProviderService.validateWithProvider();
+        assertFalse(validationResult.get("success").asBoolean());
+        assertTrue(validationResult.get("message").asText().contains("Failed to validate"));
+
+        // Test get certificates (will fail without provider)
+        JsonNode certificatesResult = mtlsProviderService.getCertificates("active");
+        assertFalse(certificatesResult.get("success").asBoolean());
+        assertTrue(certificatesResult.get("message").asText().contains("Failed to retrieve certificates"));
+    }
+
+    @Test
+    void testDomainLogicAnnotations() {
+        assertTrue(certificateProfileLogic.getClass().isAnnotationPresent(
+            blog.eric231.framework.application.usecase.DL.class));
+        assertTrue(certificateValidationLogic.getClass().isAnnotationPresent(
+            blog.eric231.framework.application.usecase.DL.class));
+        assertTrue(secureDataLogic.getClass().isAnnotationPresent(
+            blog.eric231.framework.application.usecase.DL.class));
+        assertTrue(clientInfoLogic.getClass().isAnnotationPresent(
+            blog.eric231.framework.application.usecase.DL.class));
+        
+        assertEquals("certificate-profile-process", 
+            certificateProfileLogic.getClass().getAnnotation(
+                blog.eric231.framework.application.usecase.DL.class).value());
+        assertEquals("certificate-validation-process", 
+            certificateValidationLogic.getClass().getAnnotation(
+                blog.eric231.framework.application.usecase.DL.class).value());
+        assertEquals("secure-data-process", 
+            secureDataLogic.getClass().getAnnotation(
+                blog.eric231.framework.application.usecase.DL.class).value());
+        assertEquals("client-info-process", 
+            clientInfoLogic.getClass().getAnnotation(
+                blog.eric231.framework.application.usecase.DL.class).value());
+    }
+
+    @Test
+    void testClientSessionFindMethods() {
+        ClientSession session1 = createTestSession("CN=Active Client", "active-fp", "active-session");
+        ClientSession session2 = createTestSession("CN=Inactive Client", "inactive-fp", "inactive-session");
+        session2.setIsActive(false);
+        
+        clientSessionRepository.save(session1);
+        clientSessionRepository.save(session2);
+
+        // Test find by client DN
+        assertTrue(clientSessionRepository.findByClientDNAndIsActiveTrue("CN=Active Client").isPresent());
+        assertFalse(clientSessionRepository.findByClientDNAndIsActiveTrue("CN=Inactive Client").isPresent());
+
+        // Test find by session ID
+        assertTrue(clientSessionRepository.findBySessionIdAndIsActiveTrue("active-session").isPresent());
+        assertFalse(clientSessionRepository.findBySessionIdAndIsActiveTrue("inactive-session").isPresent());
+
+        // Test find by fingerprint
+        assertTrue(clientSessionRepository.findByCertificateFingerprintAndIsActiveTrue("active-fp").isPresent());
+        assertFalse(clientSessionRepository.findByCertificateFingerprintAndIsActiveTrue("inactive-fp").isPresent());
+    }
+
+    @Test
+    void testClientSessionTimeBasedQueries() {
+        ClientSession recentSession = createTestSession("CN=Recent Client", "recent-fp", "recent-session");
+        ClientSession oldSession = createTestSession("CN=Old Client", "old-fp", "old-session");
+        
+        // Simulate old session
+        oldSession.setLastAccessed(LocalDateTime.now().minusHours(25));
+        
+        clientSessionRepository.save(recentSession);
+        clientSessionRepository.save(oldSession);
+
+        // Test recent active sessions (last 24 hours)
+        List<ClientSession> recentSessions = clientSessionRepository.findRecentActiveSessions(
+            LocalDateTime.now().minusHours(24));
+        assertEquals(1, recentSessions.size());
+        assertEquals("CN=Recent Client", recentSessions.get(0).getClientDN());
+
+        // Test find sessions before cutoff time
+        List<ClientSession> oldSessions = clientSessionRepository.findByLastAccessedBeforeAndIsActiveTrue(
+            LocalDateTime.now().minusHours(24));
+        assertEquals(1, oldSessions.size());
+        assertEquals("CN=Old Client", oldSessions.get(0).getClientDN());
+    }
+
+    @Test
+    void testClientSessionAccessTracking() {
+        ClientSession session = createTestSession("CN=Test Client", "test-fp", "test-session");
+        session = clientSessionRepository.save(session);
+        
+        assertEquals(0L, session.getAccessCount());
+        
+        // Simulate multiple accesses
+        for (int i = 1; i <= 5; i++) {
+            session.incrementAccessCount();
+            session = clientSessionRepository.save(session);
+            assertEquals((long) i, session.getAccessCount());
+        }
+        
+        // Verify last accessed time is updated
+        LocalDateTime beforeUpdate = session.getLastAccessed();
+        try {
+            Thread.sleep(100); // Small delay to ensure time difference
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        session.incrementAccessCount();
+        session = clientSessionRepository.save(session);
+        assertTrue(session.getLastAccessed().isAfter(beforeUpdate));
+    }
+
+    private ClientSession createTestSession(String clientDN, String fingerprint, String sessionId) {
+        ClientSession session = new ClientSession();
+        session.setClientDN(clientDN);
+        session.setCertificateFingerprint(fingerprint);
+        session.setSessionId(sessionId);
+        session.setClientIp("192.168.1.100");
+        session.setUserAgent("Test Agent");
+        session.setIsActive(true);
+        return session;
+    }
+}

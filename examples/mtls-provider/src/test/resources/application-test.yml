@@ -1,0 +1,51 @@
+server:
+  port: 8445  # Different port for tests to avoid conflicts
+  ssl:
+    enabled: true
+    key-store: classpath:mtls-keystore.p12
+    key-store-password: mtlspass
+    key-store-type: PKCS12
+    client-auth: need
+    trust-store: classpath:mtls-truststore.p12
+    trust-store-password: mtlspass
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testmtlsdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console:
+      enabled: false
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: bypass
+  routing:
+    - processName: "mtls-auth-process"
+      triggers:
+        - type: "rest"
+          path: "/auth/mtls"
+          method: "GET"
+    - processName: "certificate-management-process"
+      triggers:
+        - type: "rest"
+          path: "/api/certificates"
+          method: "GET"
+    - processName: "certificate-register-process"
+      triggers:
+        - type: "rest"
+          path: "/api/certificates"
+          method: "POST"
+
+logging:
+  level:
+    blog.eric231: DEBUG
+    org.springframework.security: WARN

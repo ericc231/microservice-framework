@@ -1,0 +1,199 @@
+package blog.eric231.examples.mtlsauthrest;
+
+import blog.eric231.examples.mtlsauthrest.service.MtlsProviderService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Integration tests that require the mTLS Provider to be running.
+ * These tests are disabled by default and should be run manually when the provider is available.
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@Disabled("Requires mTLS Provider to be running on localhost:8085")
+public class MtlsProviderIntegrationTest {
+
+    @Autowired
+    private MtlsProviderService mtlsProviderService;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String VALID_TEST_CERTIFICATE = 
+        "-----BEGIN CERTIFICATE-----\n" +
+        "MIIDXTCCAkWgAwIBAgIJAKZpYqRhJCOdMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\n" +
+        "BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\n" +
+        "aWRnaXRzIFB0eSBMdGQwHhcNMjMwMTAxMDAwMDAwWhcNMjQwMTAxMDAwMDAwWjBF\n" +
+        "MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50\n" +
+        "ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\n" +
+        "CgKCAQEAwUXY4UDHH6aeJi7X4wJhzqfr5PpP2ByQ6JOb8zG7L9C5Y1d6K8G3h4A9\n" +
+        "fOYz8E6J2YNi5y6h9hzC4D5K8k1M6uP7vJ5lPo9D8F6n3c0z6M4Q2rT8U9b1k5W\n" +
+        "3g2Y8wF1j7l4S5t6H7i8R9q2N1m5P4k7L3b8V6c9E4d1T2a3G8h5I6j7K8l9M0n\n" +
+        "1o2P3q4R5s6T7u8V9w0X1y2Z3a4B5c6D7e8F9g0H1i2J3k4L5m6N7o8P9q0R1s2\n" +
+        "T3u4V5w6X7y8Z9a0B1c2D3e4F5g6H7i8J9k0L1m2N3o4P5q6R7s8T9u0V1w2X3y\n" +
+        "4Z5a6B7c8D9e0F1g2H3i4J5k6L7m8N9o0P1q2R3s4T5u6V7w8X9y0Z1a2B3c4D5e\n" +
+        "6F7g8H9iQIDAQABo1AwTjAdBgNVHQ4EFgQU6tN5/6Y3n6J2F4a7z8K9mPqN3LI=\n" +
+        "MB8GA1UdIwQYMBaAFOrTef+mN5+idheGu8/CvZj6jdyyMA0GCSqGSIb3DQEBCwUA\n" +
+        "A4IBAQCR5Y8l3n8D6p7R2i4t6u7W9z0a2b4c5D6E7F8G9H0I1J2K3L4M5N6O7P8Q\n" +
+        "9R0S1T2U3V4W5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W\n" +
+        "1X2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C\n" +
+        "3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1F2G3H4I\n" +
+        "-----END CERTIFICATE-----";
+
+    @BeforeEach
+    void setUp() {
+        // This test suite requires the mTLS Provider to be running
+        // Start the mTLS Provider before running these tests:
+        // cd examples/mtls-provider/bin && ./start.sh
+    }
+
+    @Test
+    void testProviderAvailability() {
+        boolean isAvailable = mtlsProviderService.isProviderAvailable();
+        assertTrue(isAvailable, "mTLS Provider should be available at https://localhost:8085");
+    }
+
+    @Test
+    void testValidateWithProvider() {
+        JsonNode result = mtlsProviderService.validateWithProvider();
+        
+        assertTrue(result.get("success").asBoolean(), 
+            "Validation with provider should succeed when provider is available");
+        
+        assertTrue(result.has("providerResponse"));
+        assertEquals("https://localhost:8085/auth/mtls", result.get("providerUrl").asText());
+        assertTrue(result.get("httpStatus").asInt() >= 200 && result.get("httpStatus").asInt() < 300);
+    }
+
+    @Test
+    void testRegisterCertificateWithProvider() {
+        JsonNode result = mtlsProviderService.registerCertificate(VALID_TEST_CERTIFICATE);
+        
+        // Note: This might succeed or fail depending on whether the certificate already exists
+        // The important thing is that we get a proper response from the provider
+        assertTrue(result.has("success"));
+        assertTrue(result.has("providerResponse"));
+        assertEquals("https://localhost:8085/api/certificates", result.get("providerUrl").asText());
+        
+        if (result.get("success").asBoolean()) {
+            // Certificate was registered successfully
+            JsonNode providerResponse = result.get("providerResponse");
+            assertTrue(providerResponse.has("success"));
+        } else {
+            // Certificate registration failed (might already exist)
+            JsonNode providerResponse = result.get("providerResponse");
+            assertTrue(providerResponse.has("message"));
+        }
+    }
+
+    @Test
+    void testGetCertificatesFromProvider() {
+        JsonNode result = mtlsProviderService.getCertificates("active");
+        
+        assertTrue(result.get("success").asBoolean(), 
+            "Getting certificates should succeed when provider is available");
+        
+        assertTrue(result.has("providerResponse"));
+        assertEquals("https://localhost:8085/api/certificates?action=active", result.get("providerUrl").asText());
+        
+        JsonNode providerResponse = result.get("providerResponse");
+        assertTrue(providerResponse.has("success"));
+        
+        if (providerResponse.get("success").asBoolean()) {
+            assertTrue(providerResponse.has("certificates"));
+            assertTrue(providerResponse.has("count"));
+        }
+    }
+
+    @Test
+    void testGetAllCertificatesFromProvider() {
+        JsonNode result = mtlsProviderService.getCertificates(null);
+        
+        assertTrue(result.get("success").asBoolean());
+        assertTrue(result.has("providerResponse"));
+        assertEquals("https://localhost:8085/api/certificates", result.get("providerUrl").asText());
+        
+        JsonNode providerResponse = result.get("providerResponse");
+        assertTrue(providerResponse.has("success"));
+        
+        if (providerResponse.get("success").asBoolean()) {
+            assertTrue(providerResponse.has("certificates"));
+            assertTrue(providerResponse.has("count"));
+        }
+    }
+
+    @Test
+    void testProviderResponseStructure() {
+        // Test that the provider returns expected response structure
+        JsonNode authResult = mtlsProviderService.validateWithProvider();
+        
+        if (authResult.get("success").asBoolean()) {
+            JsonNode providerResponse = authResult.get("providerResponse");
+            
+            // Check expected fields in mTLS auth response
+            assertTrue(providerResponse.has("authenticated"));
+            assertTrue(providerResponse.has("authType"));
+            assertTrue(providerResponse.has("message"));
+            
+            if (providerResponse.get("authenticated").asBoolean()) {
+                // If authenticated, should have certificate details
+                assertTrue(providerResponse.has("subjectDN"));
+                assertTrue(providerResponse.has("issuerDN"));
+                assertTrue(providerResponse.has("serialNumber"));
+            }
+        }
+    }
+
+    @Test
+    void testProviderErrorHandling() {
+        // Test with invalid certificate format
+        String invalidCert = "invalid certificate data";
+        JsonNode result = mtlsProviderService.registerCertificate(invalidCert);
+        
+        // Should get a response from provider indicating invalid format
+        assertTrue(result.has("success"));
+        assertTrue(result.has("providerResponse"));
+        
+        JsonNode providerResponse = result.get("providerResponse");
+        assertFalse(providerResponse.get("success").asBoolean());
+        assertTrue(providerResponse.has("message"));
+        assertTrue(providerResponse.get("message").asText().toLowerCase().contains("format") ||
+                  providerResponse.get("message").asText().toLowerCase().contains("invalid"));
+    }
+
+    /**
+     * Manual test instructions:
+     * 
+     * To run these integration tests:
+     * 
+     * 1. Start the mTLS Provider:
+     *    cd examples/mtls-provider/bin
+     *    ./start.sh
+     * 
+     * 2. Wait for the provider to start (check logs for "Started MtlsProviderApplication")
+     * 
+     * 3. Remove the @Disabled annotation from this test class
+     * 
+     * 4. Run the tests:
+     *    mvn test -Dtest=MtlsProviderIntegrationTest
+     * 
+     * 5. Stop the provider when done:
+     *    cd examples/mtls-provider/bin
+     *    ./stop.sh
+     * 
+     * Expected behavior:
+     * - testProviderAvailability: Should pass if provider is running
+     * - testValidateWithProvider: Should pass with authenticated=false (no client cert in test)
+     * - testRegisterCertificateWithProvider: May pass or fail depending on certificate validity
+     * - testGetCertificatesFromProvider: Should pass and return certificate list
+     * - testProviderResponseStructure: Should verify expected response format
+     * - testProviderErrorHandling: Should handle invalid certificate gracefully
+     */
+}

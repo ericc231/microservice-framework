@@ -1,6 +1,6 @@
 package blog.eric231.framework.infrastructure.adapter;
 
-import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import blog.eric231.framework.infrastructure.configuration.FrameworkRedisProperties;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,7 +12,7 @@ class RedisSimpleTest {
     
     @Test
     void testRedisPropertiesDefaults() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         
         assertEquals("standalone", properties.getMode());
         assertEquals("localhost", properties.getStandalone().getHost());
@@ -28,12 +28,12 @@ class RedisSimpleTest {
     
     @Test
     void testRedisPropertiesStandaloneConfiguration() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         properties.setMode("standalone");
         properties.setDatabase(1);
         properties.setPassword("testpass");
         
-        RedisProperties.Standalone standalone = properties.getStandalone();
+        FrameworkRedisProperties.Standalone standalone = properties.getStandalone();
         standalone.setHost("redis-server");
         standalone.setPort(6380);
         
@@ -46,11 +46,11 @@ class RedisSimpleTest {
     
     @Test
     void testRedisPropertiesClusterConfiguration() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         properties.setMode("cluster");
         properties.setPassword("clusterpass");
         
-        RedisProperties.Cluster cluster = properties.getCluster();
+        FrameworkRedisProperties.Cluster cluster = properties.getCluster();
         cluster.setNodes(java.util.Arrays.asList("node1:7001", "node2:7002", "node3:7003"));
         cluster.setMaxRedirects(5);
         
@@ -89,8 +89,8 @@ class RedisSimpleTest {
     
     @Test
     void testRedisPropertiesPoolConfiguration() {
-        RedisProperties properties = new RedisProperties();
-        RedisProperties.Pool pool = properties.getPool();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
+        FrameworkRedisProperties.Pool pool = properties.getPool();
         
         pool.setMaxTotal(20);
         pool.setMaxIdle(15);
@@ -103,7 +103,7 @@ class RedisSimpleTest {
     
     @Test
     void testRedisPropertiesNestedObjectsNotNull() {
-        RedisProperties properties = new RedisProperties();
+        FrameworkRedisProperties properties = new FrameworkRedisProperties();
         
         assertNotNull(properties.getStandalone());
         assertNotNull(properties.getCluster());

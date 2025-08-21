@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testoidcdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console:
+      enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          oidc-client:
+            client-id: test-client
+            client-secret: test-secret
+            scope: openid,profile,email
+        provider:
+          oidc-client:
+            issuer-uri: https://localhost:8443
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:8443
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: bypass
+  routing:
+    - processName: "user-profile-process"
+      triggers:
+        - type: "rest"
+          path: "/api/user/profile"
+          method: "GET"
+    - processName: "user-list-process"
+      triggers:
+        - type: "rest"
+          path: "/api/users"
+          method: "GET"
+    - processName: "create-user-process"
+      triggers:
+        - type: "rest"
+          path: "/api/users"
+          method: "POST"
+
+logging:
+  level:
+    blog.eric231: DEBUG
+    org.springframework.security: WARN

@@ -1,11 +1,11 @@
 package blog.eric231.framework.infrastructure.adapter;
 
-import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import blog.eric231.framework.infrastructure.configuration.FrameworkRedisProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -21,18 +21,18 @@ import java.util.concurrent.TimeUnit;
  * Redis Adapter providing connection and operation capabilities for standalone Redis instances.
  * Supports common Redis operations including string operations, hash operations, set operations, and TTL management.
  */
-@Slf4j
 @Component
-@ConditionalOnProperty(name = "framework.redis.mode", havingValue = "standalone", matchIfMissing = true)
+@ConditionalOnExpression("'${framework.redis.enabled:false}'=='true' and '${framework.redis.mode:standalone}'=='standalone'")
+@Slf4j
 public class RedisAdapter {
     
     private final RedisTemplate<String, Object> redisTemplate;
-    private final RedisProperties redisProperties;
+    private final FrameworkRedisProperties redisProperties;
     private final ObjectMapper objectMapper;
     
     @Autowired
     public RedisAdapter(RedisTemplate<String, Object> redisTemplate, 
-                       RedisProperties redisProperties, 
+                       FrameworkRedisProperties redisProperties, 
                        ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.redisProperties = redisProperties;

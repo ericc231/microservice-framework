@@ -1,0 +1,52 @@
+package blog.eric231.examples.basicauthrest;
+
+import blog.eric231.examples.basicauthrest.domain.User;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class BasicAuthRestSimpleTest {
+
+    @Test
+    void testUserEntityBasicFunctionality() {
+        // Test basic user entity functionality without database
+        User user = new User();
+        user.setUsername("testuser");
+        user.setPassword("password");
+        user.setEmail("test@example.com");
+        user.setRole("USER");
+        user.setActive(true);
+        user.setCreatedAt(LocalDateTime.now());
+        
+        assertEquals("testuser", user.getUsername());
+        assertEquals("password", user.getPassword());
+        assertEquals("test@example.com", user.getEmail());
+        assertEquals("USER", user.getRole());
+        assertTrue(user.isActive());
+        assertNotNull(user.getCreatedAt());
+    }
+
+    @Test
+    void testUserEntityValidation() {
+        // Test user entity validation logic
+        User user = new User();
+        user.setUsername("admin");
+        user.setRole("ADMIN");
+        user.setActive(true);
+        
+        assertEquals("admin", user.getUsername());
+        assertEquals("ADMIN", user.getRole());
+        assertTrue(user.isActive());
+    }
+
+    @Test
+    void testBasicFunctionality() {
+        // Test that basic Java functionality works
+        String testString = "Basic Auth REST";
+        assertTrue(testString.contains("Basic"));
+        assertTrue(testString.contains("Auth"));
+        assertTrue(testString.contains("REST"));
+    }
+}

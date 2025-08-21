@@ -1,4 +1,4 @@
-blog/eric231/examples/basicauthprovider/domain/User.class
-blog/eric231/examples/basicauthprovider/BasicAuthProviderApplication.class
-blog/eric231/examples/basicauthprovider/service/BasicAuthUserDetailsService.class
-blog/eric231/examples/basicauthprovider/domain/UserRepository.class
+blog\eric231\examples\basicauthprovider\domain\UserRepository.class
+blog\eric231\examples\basicauthprovider\BasicAuthProviderApplication.class
+blog\eric231\examples\basicauthprovider\service\BasicAuthUserDetailsService.class
+blog\eric231\examples\basicauthprovider\domain\User.class

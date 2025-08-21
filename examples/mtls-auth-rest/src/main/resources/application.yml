@@ -1,0 +1,66 @@
+server:
+  port: 8086
+  ssl:
+    enabled: true
+    key-store: classpath:mtls-client-keystore.p12
+    key-store-password: clientpass
+    key-store-type: PKCS12
+    key-alias: client
+    trust-store: classpath:mtls-truststore.p12
+    trust-store-password: mtlspass
+    trust-store-type: PKCS12
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:mtlsrestdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: mtls
+  routing:
+    - processName: "certificate-profile-process"
+      triggers:
+        - type: "rest"
+          path: "/api/certificate/profile"
+          method: "GET"
+    - processName: "certificate-validation-process"
+      triggers:
+        - type: "rest"
+          path: "/api/certificate/validate"
+          method: "POST"
+    - processName: "secure-data-process"
+      triggers:
+        - type: "rest"
+          path: "/api/secure/data"
+          method: "GET"
+    - processName: "client-info-process"
+      triggers:
+        - type: "rest"
+          path: "/api/client/info"
+          method: "GET"
+
+# mTLS Provider connection
+mtls:
+  provider:
+    base-url: https://localhost:8085
+    certificate-endpoint: /api/certificates
+    auth-endpoint: /auth/mtls
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    blog.eric231: DEBUG
+    javax.net.ssl: DEBUG

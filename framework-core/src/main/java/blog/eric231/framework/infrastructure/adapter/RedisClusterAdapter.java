@@ -1,11 +1,11 @@
 package blog.eric231.framework.infrastructure.adapter;
 
-import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import blog.eric231.framework.infrastructure.configuration.FrameworkRedisProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisClusterConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -22,19 +22,19 @@ import java.util.concurrent.TimeUnit;
  * Redis Cluster Adapter providing connection and operation capabilities for Redis Cluster deployments.
  * Supports Redis Cluster specific operations and handles cluster topology changes gracefully.
  */
-@Slf4j
 @Component
-@ConditionalOnProperty(name = "framework.redis.mode", havingValue = "cluster")
+@ConditionalOnExpression("'${framework.redis.enabled:false}'=='true' and '${framework.redis.mode:standalone}'=='cluster'")
+@Slf4j
 public class RedisClusterAdapter {
     
     private final RedisTemplate<String, Object> redisTemplate;
-    private final RedisProperties redisProperties;
+    private final FrameworkRedisProperties redisProperties;
     private final ObjectMapper objectMapper;
     private final RedisConnectionFactory connectionFactory;
     
     @Autowired
     public RedisClusterAdapter(RedisTemplate<String, Object> redisTemplate,
-                              RedisProperties redisProperties,
+                              FrameworkRedisProperties redisProperties,
                               ObjectMapper objectMapper,
                               RedisConnectionFactory connectionFactory) {
         this.redisTemplate = redisTemplate;

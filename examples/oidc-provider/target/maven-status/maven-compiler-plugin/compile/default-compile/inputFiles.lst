@@ -1,1 +1,6 @@
-/Users/ericchen/gemini/microservice-parent/examples/oidc-provider/src/main/java/blog/eric231/examples/oidcprovider/OidcProviderApplication.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\config\AuthorizationServerConfig.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\config\LdapAuthenticationConfig.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\controller\UserInfoController.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\OidcProviderApplication.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\process\OidcAuthProcess.java
+C:\Users\eric2\claude\microservice-framework\examples\oidc-provider\src\main\java\blog\eric231\examples\oidcprovider\service\JwtTokenService.java

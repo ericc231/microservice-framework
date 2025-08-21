@@ -31,11 +31,17 @@ public class RestConnector {
     }
 
     private BusinessProcess findProcessForRequest(String processName, String method) {
+        if (frameworkProperties.getRouting() == null) {
+            return null;
+        }
+        
         for (FrameworkProperties.Routing routing : frameworkProperties.getRouting()) {
             if (routing.getProcessName().equals(processName)) {
-                for (FrameworkProperties.Trigger trigger : routing.getTriggers()) {
-                    if ("rest".equalsIgnoreCase(trigger.getType()) && method.equalsIgnoreCase(trigger.getMethod())) {
-                        return processRegistry.getProcess(processName);
+                if (routing.getTriggers() != null) {
+                    for (FrameworkProperties.Trigger trigger : routing.getTriggers()) {
+                        if ("rest".equalsIgnoreCase(trigger.getType()) && method.equalsIgnoreCase(trigger.getMethod())) {
+                            return processRegistry.getProcess(processName);
+                        }
                     }
                 }
             }

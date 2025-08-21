@@ -1,6 +1,36 @@
 server:
   port: 8083
 
+spring:
+  ldap:
+    urls: ldap://localhost:389
+    base: dc=springframework,dc=org
+    username: uid=admin,ou=people,dc=springframework,dc=org
+    password: admin
+  security:
+    oauth2:
+      authorizationserver:
+        client:
+          oidc-client:
+            registration:
+              client-id: oidc-client
+              client-secret: secret
+              client-authentication-methods:
+                - client_secret_basic
+              authorization-grant-types:
+                - authorization_code
+                - refresh_token
+              redirect-uris:
+                - http://localhost:8080/login/oauth2/code/oidc-client
+              post-logout-redirect-uris:
+                - http://localhost:8080/
+              scopes:
+                - openid
+                - profile
+                - email
+                - read
+                - write
+
 framework:
   connectors:
     rest:
@@ -12,3 +42,9 @@ framework:
         - type: "rest"
           path: "/auth/oidc"
           method: "GET"
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.ldap: DEBUG
+    org.springframework.security.oauth2: DEBUG

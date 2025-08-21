@@ -182,16 +182,29 @@ The service uses Spring Security LDAP with:
 
 ## Testing
 
-Run the test suite:
+Run the comprehensive test suite:
 
 ```bash
+# Run all tests
 mvn test
+
+# Integration test with LDAP server
+mvn verify
 ```
 
-Includes:
-- Unit tests for LDAP controllers
-- Integration tests for LDAP authentication flows
-- LDAP connection and group membership tests
+**Test Coverage Includes:**
+- **LDAP Controller Tests** - Unit tests for LDAP authentication API endpoints
+- **Web Interface Tests** - LDAP login controller and form-based authentication
+- **Security Integration** - LDAP authentication and group-based authorization tests
+- **Group Membership Tests** - LDAP group to role mapping validation
+
+**Test Features:**
+- ✅ MockMvc testing for REST endpoints
+- ✅ LDAP authentication flow testing
+- ✅ Group membership and role mapping verification
+- ✅ @DL domain logic integration with LDAP
+- ✅ Security configuration validation
+- ✅ LDAP server connection status testing
 
 ## LDAP Test Users
 

@@ -87,10 +87,6 @@ public class LdapSecurityConfig {
         // Set user DN patterns
         authenticator.setUserDnPatterns(new String[]{"uid={0},ou=people"});
         
-        // Create authentication provider
-        org.springframework.security.ldap.authentication.LdapAuthenticationProvider provider = 
-            new org.springframework.security.ldap.authentication.LdapAuthenticationProvider(authenticator);
-        
         // Set group search configuration
         org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator authoritiesPopulator = 
             new org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator(contextSource(), "ou=groups");
@@ -100,7 +96,9 @@ public class LdapSecurityConfig {
         authoritiesPopulator.setRolePrefix("ROLE_");
         authoritiesPopulator.setConvertToUpperCase(true);
         
-        provider.setAuthoritiesPopulator(authoritiesPopulator);
+        // Create authentication provider with both authenticator and authorities populator
+        org.springframework.security.ldap.authentication.LdapAuthenticationProvider provider = 
+            new org.springframework.security.ldap.authentication.LdapAuthenticationProvider(authenticator, authoritiesPopulator);
         
         return provider;
     }

@@ -1,0 +1,521 @@
+package blog.eric231.framework.infrastructure.adapter;
+
+import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.connection.RedisClusterConnection;
+import org.springframework.data.redis.connection.RedisClusterNode;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.ValueOperations;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for RedisClusterAdapter
+ */
+@ExtendWith(MockitoExtension.class)
+class RedisClusterAdapterTest {
+    
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    @Mock
+    private RedisProperties redisProperties;
+    
+    @Mock
+    private ObjectMapper objectMapper;
+    
+    @Mock
+    private RedisConnectionFactory connectionFactory;
+    
+    @Mock
+    private RedisClusterConnection clusterConnection;
+    
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+    
+    @Mock
+    private HashOperations<String, Object, Object> hashOperations;
+    
+    @Mock
+    private SetOperations<String, Object> setOperations;
+    
+    private RedisClusterAdapter redisClusterAdapter;
+    
+    @BeforeEach
+    void setUp() {
+        // Setup mock properties
+        RedisProperties.Cluster cluster = new RedisProperties.Cluster();
+        cluster.setNodes(Arrays.asList("localhost:7001", "localhost:7002", "localhost:7003"));
+        cluster.setMaxRedirects(3);
+        
+        when(redisProperties.getCluster()).thenReturn(cluster);
+        
+        // Setup mock template operations
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(connectionFactory.getClusterConnection()).thenReturn(clusterConnection);
+        
+        // Setup cluster connection mock
+        when(clusterConnection.clusterGetClusterInfo()).thenReturn(Properties.class.cast(new Properties() {{
+            put("cluster_state", "ok");
+        }}));
+        
+        redisClusterAdapter = new RedisClusterAdapter(redisTemplate, redisProperties, objectMapper, connectionFactory);
+    }
+    
+    // String Operations Tests
+    
+    @Test
+    void testSet() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        redisClusterAdapter.set(key, value);
+        
+        verify(valueOperations).set(key, value);
+    }
+    
+    @Test
+    void testSetWithExpiration() {
+        String key = "testKey";
+        String value = "testValue";
+        Duration timeout = Duration.ofMinutes(5);
+        
+        redisClusterAdapter.set(key, value, timeout);
+        
+        verify(valueOperations).set(key, value, timeout);
+    }
+    
+    @Test
+    void testGet() {
+        String key = "testKey";
+        String expectedValue = "testValue";
+        
+        when(valueOperations.get(key)).thenReturn(expectedValue);
+        
+        Object result = redisClusterAdapter.get(key);
+        
+        assertEquals(expectedValue, result);
+        verify(valueOperations).get(key);
+    }
+    
+    @Test
+    void testGetWithType() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        when(valueOperations.get(key)).thenReturn(value);
+        
+        String result = redisClusterAdapter.get(key, String.class);
+        
+        assertEquals(value, result);
+        verify(valueOperations).get(key);
+    }
+    
+    @Test
+    void testGetWithTypeConversion() throws Exception {
+        String key = "testKey";
+        String jsonValue = "{\"name\":\"test\"}";
+        TestObject expectedObject = new TestObject("test");
+        
+        when(valueOperations.get(key)).thenReturn(jsonValue);
+        when(objectMapper.readValue(jsonValue, TestObject.class)).thenReturn(expectedObject);
+        
+        TestObject result = redisClusterAdapter.get(key, TestObject.class);
+        
+        assertEquals(expectedObject, result);
+        verify(objectMapper).readValue(jsonValue, TestObject.class);
+    }
+    
+    @Test
+    void testDelete() {
+        String key = "testKey";
+        
+        when(redisTemplate.delete(key)).thenReturn(true);
+        
+        boolean result = redisClusterAdapter.delete(key);
+        
+        assertTrue(result);
+        verify(redisTemplate).delete(key);
+    }
+    
+    @Test
+    void testExists() {
+        String key = "testKey";
+        
+        when(redisTemplate.hasKey(key)).thenReturn(true);
+        
+        boolean result = redisClusterAdapter.exists(key);
+        
+        assertTrue(result);
+        verify(redisTemplate).hasKey(key);
+    }
+    
+    @Test
+    void testExpire() {
+        String key = "testKey";
+        Duration timeout = Duration.ofMinutes(5);
+        
+        when(redisTemplate.expire(key, timeout)).thenReturn(true);
+        
+        boolean result = redisClusterAdapter.expire(key, timeout);
+        
+        assertTrue(result);
+        verify(redisTemplate).expire(key, timeout);
+    }
+    
+    @Test
+    void testGetTtl() {
+        String key = "testKey";
+        Long ttlSeconds = 300L;
+        
+        when(redisTemplate.getExpire(key, TimeUnit.SECONDS)).thenReturn(ttlSeconds);
+        
+        Duration result = redisClusterAdapter.getTtl(key);
+        
+        assertEquals(Duration.ofSeconds(ttlSeconds), result);
+        verify(redisTemplate).getExpire(key, TimeUnit.SECONDS);
+    }
+    
+    // Hash Operations Tests
+    
+    @Test
+    void testHset() {
+        String key = "hashKey";
+        String field = "field1";
+        String value = "value1";
+        
+        redisClusterAdapter.hset(key, field, value);
+        
+        verify(hashOperations).put(key, field, value);
+    }
+    
+    @Test
+    void testHget() {
+        String key = "hashKey";
+        String field = "field1";
+        String expectedValue = "value1";
+        
+        when(hashOperations.get(key, field)).thenReturn(expectedValue);
+        
+        Object result = redisClusterAdapter.hget(key, field);
+        
+        assertEquals(expectedValue, result);
+        verify(hashOperations).get(key, field);
+    }
+    
+    @Test
+    void testHgetAll() {
+        String key = "hashKey";
+        Map<Object, Object> expectedMap = new HashMap<>();
+        expectedMap.put("field1", "value1");
+        expectedMap.put("field2", "value2");
+        
+        when(hashOperations.entries(key)).thenReturn(expectedMap);
+        
+        Map<Object, Object> result = redisClusterAdapter.hgetAll(key);
+        
+        assertEquals(expectedMap, result);
+        verify(hashOperations).entries(key);
+    }
+    
+    @Test
+    void testHdel() {
+        String key = "hashKey";
+        String field = "field1";
+        
+        when(hashOperations.delete(key, field)).thenReturn(1L);
+        
+        boolean result = redisClusterAdapter.hdel(key, field);
+        
+        assertTrue(result);
+        verify(hashOperations).delete(key, field);
+    }
+    
+    // Set Operations Tests
+    
+    @Test
+    void testSadd() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.add(key, member)).thenReturn(1L);
+        
+        boolean result = redisClusterAdapter.sadd(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).add(key, member);
+    }
+    
+    @Test
+    void testSmembers() {
+        String key = "setKey";
+        Set<Object> expectedMembers = Set.of("member1", "member2");
+        
+        when(setOperations.members(key)).thenReturn(expectedMembers);
+        
+        Set<Object> result = redisClusterAdapter.smembers(key);
+        
+        assertEquals(expectedMembers, result);
+        verify(setOperations).members(key);
+    }
+    
+    @Test
+    void testSismember() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.isMember(key, member)).thenReturn(true);
+        
+        boolean result = redisClusterAdapter.sismember(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).isMember(key, member);
+    }
+    
+    @Test
+    void testSrem() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.remove(key, member)).thenReturn(1L);
+        
+        boolean result = redisClusterAdapter.srem(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).remove(key, member);
+    }
+    
+    // Cluster-specific Operations Tests
+    
+    @Test
+    void testGetClusterInfo() {
+        Properties clusterInfo = new Properties();
+        clusterInfo.setProperty("cluster_state", "ok");
+        clusterInfo.setProperty("cluster_slots_assigned", "16384");
+        
+        when(clusterConnection.clusterGetClusterInfo()).thenReturn(clusterInfo);
+        
+        String result = redisClusterAdapter.getClusterInfo();
+        
+        assertNotNull(result);
+        verify(clusterConnection).clusterGetClusterInfo();
+    }
+    
+    @Test
+    void testGetClusterNodes() {
+        List<Object> mockNodes = Arrays.asList("node1:7001", "node2:7002", "node3:7003");
+        
+        when(clusterConnection.clusterGetNodes()).thenReturn(mockNodes);
+        
+        Set<String> result = redisClusterAdapter.getClusterNodes();
+        
+        assertEquals(3, result.size());
+        assertTrue(result.contains("node1:7001"));
+        assertTrue(result.contains("node2:7002"));
+        assertTrue(result.contains("node3:7003"));
+        verify(clusterConnection).clusterGetNodes();
+    }
+    
+    @Test
+    void testGetSlotForKey() {
+        String key = "testKey";
+        int expectedSlot = 12345;
+        
+        when(clusterConnection.clusterGetSlotForKey(key.getBytes())).thenReturn(expectedSlot);
+        
+        int result = redisClusterAdapter.getSlotForKey(key);
+        
+        assertEquals(expectedSlot, result);
+        verify(clusterConnection).clusterGetSlotForKey(key.getBytes());
+    }
+    
+    @Test
+    void testExecuteOnSlot() {
+        int slot = 1000;
+        String expectedResult = "test result";
+        
+        RedisClusterAdapter.RedisClusterCallback<String> callback = (connection, slotParam) -> {
+            assertEquals(slot, slotParam);
+            return expectedResult;
+        };
+        
+        String result = redisClusterAdapter.executeOnSlot(slot, callback);
+        
+        assertEquals(expectedResult, result);
+    }
+    
+    // Utility Methods Tests
+    
+    @Test
+    void testTestClusterConnection() {
+        Properties clusterInfo = new Properties();
+        clusterInfo.setProperty("cluster_state", "ok");
+        
+        when(clusterConnection.clusterGetClusterInfo()).thenReturn(clusterInfo);
+        
+        boolean result = redisClusterAdapter.testClusterConnection();
+        
+        assertTrue(result);
+        verify(clusterConnection).clusterGetClusterInfo();
+    }
+    
+    @Test
+    void testTestClusterConnectionFailure() {
+        when(connectionFactory.getClusterConnection()).thenReturn(null);
+        
+        boolean result = redisClusterAdapter.testClusterConnection();
+        
+        assertFalse(result);
+    }
+    
+    @Test
+    void testGetClusterStats() {
+        Properties clusterInfo = new Properties();
+        clusterInfo.setProperty("cluster_state", "ok");
+        
+        List<Object> mockNodes = Arrays.asList("node1:7001", "node2:7002");
+        
+        when(clusterConnection.clusterGetClusterInfo()).thenReturn(clusterInfo);
+        when(clusterConnection.clusterGetNodes()).thenReturn(mockNodes);
+        
+        Map<String, Object> result = redisClusterAdapter.getClusterStats();
+        
+        assertNotNull(result);
+        assertEquals("connected", result.get("connectionStatus"));
+        assertEquals(2, result.get("nodeCount"));
+        assertNotNull(result.get("clusterInfo"));
+    }
+    
+    @Test
+    void testGetClusterStatsWithError() {
+        when(connectionFactory.getClusterConnection()).thenThrow(new RuntimeException("Connection error"));
+        
+        Map<String, Object> result = redisClusterAdapter.getClusterStats();
+        
+        assertNotNull(result);
+        assertEquals("error", result.get("connectionStatus"));
+        assertEquals("Connection error", result.get("error"));
+    }
+    
+    @Test
+    void testToJson() throws Exception {
+        TestObject object = new TestObject("test");
+        String expectedJson = "{\"name\":\"test\"}";
+        
+        when(objectMapper.writeValueAsString(object)).thenReturn(expectedJson);
+        
+        String result = redisClusterAdapter.toJson(object);
+        
+        assertEquals(expectedJson, result);
+        verify(objectMapper).writeValueAsString(object);
+    }
+    
+    // Exception Tests
+    
+    @Test
+    void testSetWithException() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        doThrow(new RuntimeException("Redis cluster error")).when(valueOperations).set(key, value);
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.set(key, value));
+    }
+    
+    @Test
+    void testGetWithException() {
+        String key = "testKey";
+        
+        when(valueOperations.get(key)).thenThrow(new RuntimeException("Redis cluster error"));
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.get(key));
+    }
+    
+    @Test
+    void testGetClusterInfoWithException() {
+        when(connectionFactory.getClusterConnection()).thenReturn(null);
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.getClusterInfo());
+    }
+    
+    @Test
+    void testGetClusterNodesWithException() {
+        when(connectionFactory.getClusterConnection()).thenReturn(null);
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.getClusterNodes());
+    }
+    
+    @Test
+    void testExecuteOnSlotWithException() {
+        int slot = 1000;
+        
+        when(connectionFactory.getClusterConnection()).thenReturn(null);
+        
+        RedisClusterAdapter.RedisClusterCallback<String> callback = (connection, slotParam) -> "test";
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.executeOnSlot(slot, callback));
+    }
+    
+    @Test
+    void testGetSlotForKeyWithException() {
+        String key = "testKey";
+        
+        when(connectionFactory.getClusterConnection()).thenReturn(null);
+        
+        assertThrows(RedisClusterAdapter.RedisClusterAdapterException.class, 
+                () -> redisClusterAdapter.getSlotForKey(key));
+    }
+    
+    // Helper test class
+    static class TestObject {
+        private String name;
+        
+        public TestObject() {}
+        
+        public TestObject(String name) {
+            this.name = name;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            TestObject that = (TestObject) obj;
+            return name != null ? name.equals(that.name) : that.name == null;
+        }
+        
+        @Override
+        public int hashCode() {
+            return name != null ? name.hashCode() : 0;
+        }
+    }
+}

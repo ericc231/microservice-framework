@@ -20,12 +20,16 @@
 		<module>framework-core</module>
 		<module>microservice-app</module>
 		<module>examples/helloworld-service</module>
+		<module>examples/basic-rest-redis</module>
 		<module>examples/ldap-provider</module>
 		<module>examples/oidc-provider</module>
 		<module>examples/mtls-provider</module>
 		<module>examples/basic-auth-provider</module>
 		<module>examples/basic-auth-rest</module>
 		<module>examples/ldap-auth-rest</module>
+		<module>examples/oidc-auth-rest</module>
+		<module>examples/mtls-auth-rest</module>
+		<module>examples/basic-auth-rest-client</module>
 	</modules>
 
 	<dependencyManagement>

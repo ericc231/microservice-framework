@@ -134,13 +134,25 @@ The service uses Spring Security with:
 
 ## Testing
 
-Run the test suite:
+Run the comprehensive test suite:
 
 ```bash
+# Run all tests
 mvn test
+
+# Integration test with full assembly
+mvn verify
 ```
 
-Includes:
-- Unit tests for controllers
-- Integration tests for authentication flows
-- Assembly integration tests
+**Test Coverage Includes:**
+- **UserControllerTest** - Unit tests for user API endpoints
+- **BasicAuthRestAssemblyIntegrationIT** - Full integration test with framework assembly
+- **Web Interface Tests** - Login controller and form-based authentication tests
+- **Security Integration** - Authentication and authorization flow tests
+
+**Test Features:**
+- ✅ Controller unit testing with MockMvc
+- ✅ Integration testing with TestContainers approach
+- ✅ Security configuration validation
+- ✅ Role-based access control verification
+- ✅ @DL domain logic integration testing

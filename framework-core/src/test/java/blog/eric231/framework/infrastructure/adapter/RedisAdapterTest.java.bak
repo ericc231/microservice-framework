@@ -1,0 +1,421 @@
+package blog.eric231.framework.infrastructure.adapter;
+
+import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.ValueOperations;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for RedisAdapter
+ */
+@ExtendWith(MockitoExtension.class)
+class RedisAdapterTest {
+    
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    @Mock
+    private RedisProperties redisProperties;
+    
+    @Mock
+    private ObjectMapper objectMapper;
+    
+    @Mock
+    private RedisConnectionFactory connectionFactory;
+    
+    @Mock
+    private RedisConnection redisConnection;
+    
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+    
+    @Mock
+    private HashOperations<String, Object, Object> hashOperations;
+    
+    @Mock
+    private SetOperations<String, Object> setOperations;
+    
+    private RedisAdapter redisAdapter;
+    
+    @BeforeEach
+    void setUp() {
+        // Setup mock properties
+        RedisProperties.Standalone standalone = new RedisProperties.Standalone();
+        standalone.setHost("localhost");
+        standalone.setPort(6379);
+        
+        when(redisProperties.getStandalone()).thenReturn(standalone);
+        when(redisProperties.getDatabase()).thenReturn(0);
+        
+        // Setup mock template operations
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(redisTemplate.getConnectionFactory()).thenReturn(connectionFactory);
+        when(connectionFactory.getConnection()).thenReturn(redisConnection);
+        when(redisConnection.ping()).thenReturn("PONG");
+        
+        redisAdapter = new RedisAdapter(redisTemplate, redisProperties, objectMapper);
+    }
+    
+    // String Operations Tests
+    
+    @Test
+    void testSet() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        redisAdapter.set(key, value);
+        
+        verify(valueOperations).set(key, value);
+    }
+    
+    @Test
+    void testSetWithExpiration() {
+        String key = "testKey";
+        String value = "testValue";
+        Duration timeout = Duration.ofMinutes(5);
+        
+        redisAdapter.set(key, value, timeout);
+        
+        verify(valueOperations).set(key, value, timeout);
+    }
+    
+    @Test
+    void testGet() {
+        String key = "testKey";
+        String expectedValue = "testValue";
+        
+        when(valueOperations.get(key)).thenReturn(expectedValue);
+        
+        Object result = redisAdapter.get(key);
+        
+        assertEquals(expectedValue, result);
+        verify(valueOperations).get(key);
+    }
+    
+    @Test
+    void testGetWithType() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        when(valueOperations.get(key)).thenReturn(value);
+        
+        String result = redisAdapter.get(key, String.class);
+        
+        assertEquals(value, result);
+        verify(valueOperations).get(key);
+    }
+    
+    @Test
+    void testGetWithTypeConversion() throws Exception {
+        String key = "testKey";
+        String jsonValue = "{\"name\":\"test\"}";
+        TestObject expectedObject = new TestObject("test");
+        
+        when(valueOperations.get(key)).thenReturn(jsonValue);
+        when(objectMapper.readValue(jsonValue, TestObject.class)).thenReturn(expectedObject);
+        
+        TestObject result = redisAdapter.get(key, TestObject.class);
+        
+        assertEquals(expectedObject, result);
+        verify(objectMapper).readValue(jsonValue, TestObject.class);
+    }
+    
+    @Test
+    void testDelete() {
+        String key = "testKey";
+        
+        when(redisTemplate.delete(key)).thenReturn(true);
+        
+        boolean result = redisAdapter.delete(key);
+        
+        assertTrue(result);
+        verify(redisTemplate).delete(key);
+    }
+    
+    @Test
+    void testExists() {
+        String key = "testKey";
+        
+        when(redisTemplate.hasKey(key)).thenReturn(true);
+        
+        boolean result = redisAdapter.exists(key);
+        
+        assertTrue(result);
+        verify(redisTemplate).hasKey(key);
+    }
+    
+    @Test
+    void testExpire() {
+        String key = "testKey";
+        Duration timeout = Duration.ofMinutes(5);
+        
+        when(redisTemplate.expire(key, timeout)).thenReturn(true);
+        
+        boolean result = redisAdapter.expire(key, timeout);
+        
+        assertTrue(result);
+        verify(redisTemplate).expire(key, timeout);
+    }
+    
+    @Test
+    void testGetTtl() {
+        String key = "testKey";
+        Long ttlSeconds = 300L;
+        
+        when(redisTemplate.getExpire(key, TimeUnit.SECONDS)).thenReturn(ttlSeconds);
+        
+        Duration result = redisAdapter.getTtl(key);
+        
+        assertEquals(Duration.ofSeconds(ttlSeconds), result);
+        verify(redisTemplate).getExpire(key, TimeUnit.SECONDS);
+    }
+    
+    @Test
+    void testGetTtlNoExpiration() {
+        String key = "testKey";
+        
+        when(redisTemplate.getExpire(key, TimeUnit.SECONDS)).thenReturn(-1L);
+        
+        Duration result = redisAdapter.getTtl(key);
+        
+        assertNull(result);
+        verify(redisTemplate).getExpire(key, TimeUnit.SECONDS);
+    }
+    
+    // Hash Operations Tests
+    
+    @Test
+    void testHset() {
+        String key = "hashKey";
+        String field = "field1";
+        String value = "value1";
+        
+        redisAdapter.hset(key, field, value);
+        
+        verify(hashOperations).put(key, field, value);
+    }
+    
+    @Test
+    void testHget() {
+        String key = "hashKey";
+        String field = "field1";
+        String expectedValue = "value1";
+        
+        when(hashOperations.get(key, field)).thenReturn(expectedValue);
+        
+        Object result = redisAdapter.hget(key, field);
+        
+        assertEquals(expectedValue, result);
+        verify(hashOperations).get(key, field);
+    }
+    
+    @Test
+    void testHgetAll() {
+        String key = "hashKey";
+        Map<Object, Object> expectedMap = new HashMap<>();
+        expectedMap.put("field1", "value1");
+        expectedMap.put("field2", "value2");
+        
+        when(hashOperations.entries(key)).thenReturn(expectedMap);
+        
+        Map<Object, Object> result = redisAdapter.hgetAll(key);
+        
+        assertEquals(expectedMap, result);
+        verify(hashOperations).entries(key);
+    }
+    
+    @Test
+    void testHdel() {
+        String key = "hashKey";
+        String field = "field1";
+        
+        when(hashOperations.delete(key, field)).thenReturn(1L);
+        
+        boolean result = redisAdapter.hdel(key, field);
+        
+        assertTrue(result);
+        verify(hashOperations).delete(key, field);
+    }
+    
+    // Set Operations Tests
+    
+    @Test
+    void testSadd() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.add(key, member)).thenReturn(1L);
+        
+        boolean result = redisAdapter.sadd(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).add(key, member);
+    }
+    
+    @Test
+    void testSmembers() {
+        String key = "setKey";
+        Set<Object> expectedMembers = Set.of("member1", "member2");
+        
+        when(setOperations.members(key)).thenReturn(expectedMembers);
+        
+        Set<Object> result = redisAdapter.smembers(key);
+        
+        assertEquals(expectedMembers, result);
+        verify(setOperations).members(key);
+    }
+    
+    @Test
+    void testSismember() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.isMember(key, member)).thenReturn(true);
+        
+        boolean result = redisAdapter.sismember(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).isMember(key, member);
+    }
+    
+    @Test
+    void testSrem() {
+        String key = "setKey";
+        String member = "member1";
+        
+        when(setOperations.remove(key, member)).thenReturn(1L);
+        
+        boolean result = redisAdapter.srem(key, member);
+        
+        assertTrue(result);
+        verify(setOperations).remove(key, member);
+    }
+    
+    // Utility Methods Tests
+    
+    @Test
+    void testTestConnection() {
+        when(redisConnection.ping()).thenReturn("PONG");
+        
+        boolean result = redisAdapter.testConnection();
+        
+        assertTrue(result);
+        verify(redisConnection).ping();
+    }
+    
+    @Test
+    void testTestConnectionFailure() {
+        when(connectionFactory.getConnection()).thenThrow(new RuntimeException("Connection failed"));
+        
+        boolean result = redisAdapter.testConnection();
+        
+        assertFalse(result);
+    }
+    
+    @Test
+    void testGetInfo() {
+        String expectedInfo = "# Server\nredis_version:6.2.0\n";
+        when(redisConnection.info()).thenReturn(expectedInfo);
+        
+        String result = redisAdapter.getInfo();
+        
+        assertEquals(expectedInfo, result);
+        verify(redisConnection).info();
+    }
+    
+    @Test
+    void testToJson() throws Exception {
+        TestObject object = new TestObject("test");
+        String expectedJson = "{\"name\":\"test\"}";
+        
+        when(objectMapper.writeValueAsString(object)).thenReturn(expectedJson);
+        
+        String result = redisAdapter.toJson(object);
+        
+        assertEquals(expectedJson, result);
+        verify(objectMapper).writeValueAsString(object);
+    }
+    
+    // Exception Tests
+    
+    @Test
+    void testSetWithException() {
+        String key = "testKey";
+        String value = "testValue";
+        
+        doThrow(new RuntimeException("Redis error")).when(valueOperations).set(key, value);
+        
+        assertThrows(RedisAdapter.RedisAdapterException.class, () -> redisAdapter.set(key, value));
+    }
+    
+    @Test
+    void testGetWithException() {
+        String key = "testKey";
+        
+        when(valueOperations.get(key)).thenThrow(new RuntimeException("Redis error"));
+        
+        assertThrows(RedisAdapter.RedisAdapterException.class, () -> redisAdapter.get(key));
+    }
+    
+    @Test
+    void testDeleteWithException() {
+        String key = "testKey";
+        
+        when(redisTemplate.delete(key)).thenThrow(new RuntimeException("Redis error"));
+        
+        assertThrows(RedisAdapter.RedisAdapterException.class, () -> redisAdapter.delete(key));
+    }
+    
+    // Helper test class
+    static class TestObject {
+        private String name;
+        
+        public TestObject() {}
+        
+        public TestObject(String name) {
+            this.name = name;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            TestObject that = (TestObject) obj;
+            return name != null ? name.equals(that.name) : that.name == null;
+        }
+        
+        @Override
+        public int hashCode() {
+            return name != null ? name.hashCode() : 0;
+        }
+    }
+}

@@ -1,6 +1,14 @@
-### Basic Auth Provider Example
+# Basic Auth Provider Example
 
-This example demonstrates how to configure the framework to act as a Basic Authentication server. It uses an in-memory H2 database to store user credentials.
+This example demonstrates how to configure the framework to act as a Basic Authentication server. It uses an in-memory H2 database to store user credentials and provides secure password storage with BCrypt hashing.
+
+## Features
+
+- **In-Memory H2 Database**: Embedded database for user storage
+- **BCrypt Password Hashing**: Secure password storage using Spring Security
+- **REST API**: User management endpoints
+- **Database Console**: H2 console for database inspection
+- **Spring Data JPA**: Repository pattern for data access
 
 **Database Schema (`User` Entity):**
 

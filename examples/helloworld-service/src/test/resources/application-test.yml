@@ -1,0 +1,35 @@
+server:
+  port: 0  # Use random port for tests
+  ssl:
+    enabled: true
+    key-store: classpath:test-keystore.p12
+    key-store-password: testpass
+    key-store-type: PKCS12
+    key-alias: test
+
+spring:
+  autoconfigure:
+    exclude: 
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+      authMode: bypass
+  security:
+    self-signed-cert:
+      enabled: true
+  redis:
+    enabled: false
+  
+jasypt:
+  encryptor:
+    enabled: false
+
+logging:
+  level:
+    blog.eric231: INFO
+    org.springframework.security: WARN

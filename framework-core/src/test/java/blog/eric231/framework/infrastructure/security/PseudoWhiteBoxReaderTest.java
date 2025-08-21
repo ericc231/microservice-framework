@@ -27,7 +27,7 @@ class PseudoWhiteBoxReaderTest {
     }
 
     @Test
-    void testReconstructKey() throws IOException {
+    void testReconstructKey() throws Exception {
         String originalSecret = "MyTestSecret123";
         PseudoWhiteBoxGenerator.generate(originalSecret, tablePath, recipePath);
 
@@ -36,7 +36,7 @@ class PseudoWhiteBoxReaderTest {
     }
 
     @Test
-    void testReconstructKeyWithDifferentSecrets() throws IOException {
+    void testReconstructKeyWithDifferentSecrets() throws Exception {
         String secret1 = "SecretA";
         PseudoWhiteBoxGenerator.generate(secret1, tablePath, recipePath);
         assertEquals(secret1, reader.reconstructKey(tablePath, recipePath));
@@ -47,14 +47,14 @@ class PseudoWhiteBoxReaderTest {
     }
 
     @Test
-    void testReconstructKeyWithEmptySecret() throws IOException {
+    void testReconstructKeyWithEmptySecret() throws Exception {
         String emptySecret = "";
         PseudoWhiteBoxGenerator.generate(emptySecret, tablePath, recipePath);
         assertEquals(emptySecret, reader.reconstructKey(tablePath, recipePath));
     }
 
     @Test
-    void testReconstructKeyWithSpecialCharacters() throws IOException {
+    void testReconstructKeyWithSpecialCharacters() throws Exception {
         String specialCharSecret = "!@#$%^&*()_+";
         PseudoWhiteBoxGenerator.generate(specialCharSecret, tablePath, recipePath);
         assertEquals(specialCharSecret, reader.reconstructKey(tablePath, recipePath));
@@ -66,12 +66,12 @@ class PseudoWhiteBoxReaderTest {
     }
 
     @Test
-    void testReconstructKeyThrowsNumberFormatExceptionIfRecipeCorrupted() throws IOException {
+    void testReconstructKeyThrowsNumberFormatExceptionIfRecipeCorrupted() throws Exception {
         String originalSecret = "test";
         PseudoWhiteBoxGenerator.generate(originalSecret, tablePath, recipePath);
 
-        // Corrupt the recipe file
-        String corruptedRecipeContent = "salt=abc\niterations=xyz\nindices=1,2,3";
+        // Corrupt the recipe file with invalid iterations value
+        String corruptedRecipeContent = "salt=abc\niterations=xyz\npassword=1234";
         Files.writeString(Path.of(recipePath), corruptedRecipeContent);
 
         assertThrows(NumberFormatException.class, () -> reader.reconstructKey(tablePath, recipePath));

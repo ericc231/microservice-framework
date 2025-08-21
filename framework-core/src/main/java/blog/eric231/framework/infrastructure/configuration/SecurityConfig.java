@@ -63,11 +63,18 @@ public class SecurityConfig {
                     .httpBasic(Customizer.withDefaults());
                 break;
             case "oidc":
-                // TODO: Implement OIDC authentication
-                throw new UnsupportedOperationException("OIDC authentication not yet implemented.");
+                http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                    .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwkSetUri("http://localhost:8083/oauth2/jwks"))
+                    )
+                    .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl("/", true)
+                    );
+                break;
             case "mtls":
-                // TODO: Implement mTLS authentication
-                throw new UnsupportedOperationException("mTLS authentication not yet implemented.");
+                http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                    .x509(Customizer.withDefaults());
+                break;
             default:
                 throw new IllegalArgumentException("Unknown authentication mode: " + authMode);
         }

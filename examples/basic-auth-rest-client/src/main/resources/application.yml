@@ -1,0 +1,29 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: basic-auth-rest-client
+
+framework:
+  connectors:
+    rest:
+      enabled: true
+  routing:
+    - processName: "basic-auth-client.call"
+      triggers:
+        - type: rest
+          path: "/client/call"
+          method: POST
+
+# Target basic-auth-rest service configuration
+client:
+  target:
+    base-url: http://localhost:8081
+    endpoint-path: /api/basic-auth
+    username: user
+    password: password
+
+logging:
+  level:
+    blog.eric231.examples.basicauthrestclient: DEBUG

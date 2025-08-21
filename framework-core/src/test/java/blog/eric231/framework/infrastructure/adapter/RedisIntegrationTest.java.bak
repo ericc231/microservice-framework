@@ -1,0 +1,333 @@
+package blog.eric231.framework.infrastructure.adapter;
+
+import blog.eric231.framework.infrastructure.configuration.RedisConfig;
+import blog.eric231.framework.infrastructure.configuration.RedisProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.TestPropertySource;
+import redis.embedded.RedisServer;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Integration tests for Redis Adapter with embedded Redis server.
+ * These tests verify actual Redis connectivity and operations.
+ * 
+ * Note: Tests will be skipped if REDIS_INTEGRATION_TEST environment variable is not set to 'true'
+ */
+@SpringBootTest(classes = {RedisConfig.class})
+@TestPropertySource(properties = {
+    "framework.redis.mode=standalone",
+    "framework.redis.standalone.host=localhost",
+    "framework.redis.standalone.port=6380",
+    "framework.redis.database=0",
+    "framework.redis.timeout=2000ms",
+    "framework.redis.pool.max-total=8",
+    "framework.redis.pool.max-idle=8",
+    "framework.redis.pool.min-idle=0"
+})
+@EnabledIfEnvironmentVariable(named = "REDIS_INTEGRATION_TEST", matches = "true")
+class RedisIntegrationTest {
+    
+    private RedisServer redisServer;
+    private RedisAdapter redisAdapter;
+    private RedisTemplate<String, Object> redisTemplate;
+    private RedisProperties redisProperties;
+    private ObjectMapper objectMapper;
+    
+    @BeforeEach
+    void setUp() throws IOException {
+        // Start embedded Redis server on port 6380
+        redisServer = RedisServer.builder()
+                .port(6380)
+                .setting("bind 127.0.0.1")
+                .setting("maxmemory 128M")
+                .build();
+        redisServer.start();
+        
+        // Setup Redis properties
+        redisProperties = new RedisProperties();
+        redisProperties.setMode("standalone");
+        redisProperties.getStandalone().setHost("localhost");
+        redisProperties.getStandalone().setPort(6380);
+        redisProperties.setDatabase(0);
+        
+        // Setup ObjectMapper
+        objectMapper = new ObjectMapper();
+        
+        // Setup Redis configuration
+        RedisConfig redisConfig = new RedisConfig(redisProperties);
+        redisTemplate = redisConfig.redisTemplate(
+                redisConfig.standaloneRedisConnectionFactory(redisConfig.jedisPoolConfig()),
+                objectMapper
+        );
+        
+        // Create Redis adapter
+        redisAdapter = new RedisAdapter(redisTemplate, redisProperties, objectMapper);
+        
+        // Wait for Redis to be ready
+        Thread.sleep(1000);
+    }
+    
+    @AfterEach
+    void tearDown() throws IOException {
+        if (redisServer != null) {
+            redisServer.stop();
+        }
+    }
+    
+    @Test
+    void testConnectionAndBasicOperations() {
+        // Test connection
+        assertTrue(redisAdapter.testConnection(), "Should be able to connect to Redis");
+        
+        // Test set and get
+        String key = "integration:test:key";
+        String value = "integration test value";
+        
+        redisAdapter.set(key, value);
+        Object retrievedValue = redisAdapter.get(key);
+        
+        assertEquals(value, retrievedValue);
+        
+        // Test delete
+        assertTrue(redisAdapter.delete(key));
+        assertNull(redisAdapter.get(key));
+    }
+    
+    @Test
+    void testExpirationOperations() throws InterruptedException {
+        String key = "integration:test:expiration";
+        String value = "expiring value";
+        Duration expiration = Duration.ofSeconds(2);
+        
+        // Set with expiration
+        redisAdapter.set(key, value, expiration);
+        
+        // Value should exist initially
+        assertEquals(value, redisAdapter.get(key));
+        assertTrue(redisAdapter.exists(key));
+        
+        // Check TTL
+        Duration ttl = redisAdapter.getTtl(key);
+        assertNotNull(ttl);
+        assertTrue(ttl.getSeconds() <= 2);
+        
+        // Wait for expiration
+        Thread.sleep(3000);
+        
+        // Value should be expired
+        assertNull(redisAdapter.get(key));
+        assertFalse(redisAdapter.exists(key));
+    }
+    
+    @Test
+    void testHashOperations() {
+        String hashKey = "integration:test:hash";
+        String field1 = "field1";
+        String value1 = "value1";
+        String field2 = "field2";
+        String value2 = "value2";
+        
+        // Set hash fields
+        redisAdapter.hset(hashKey, field1, value1);
+        redisAdapter.hset(hashKey, field2, value2);
+        
+        // Get hash fields
+        assertEquals(value1, redisAdapter.hget(hashKey, field1));
+        assertEquals(value2, redisAdapter.hget(hashKey, field2));
+        
+        // Get all hash fields
+        Map<Object, Object> allFields = redisAdapter.hgetAll(hashKey);
+        assertEquals(2, allFields.size());
+        assertEquals(value1, allFields.get(field1));
+        assertEquals(value2, allFields.get(field2));
+        
+        // Delete hash field
+        assertTrue(redisAdapter.hdel(hashKey, field1));
+        assertNull(redisAdapter.hget(hashKey, field1));
+        assertEquals(value2, redisAdapter.hget(hashKey, field2));
+        
+        // Clean up
+        redisAdapter.delete(hashKey);
+    }
+    
+    @Test
+    void testSetOperations() {
+        String setKey = "integration:test:set";
+        String member1 = "member1";
+        String member2 = "member2";
+        String member3 = "member3";
+        
+        // Add members to set
+        assertTrue(redisAdapter.sadd(setKey, member1, member2));
+        assertTrue(redisAdapter.sadd(setKey, member3));
+        
+        // Check membership
+        assertTrue(redisAdapter.sismember(setKey, member1));
+        assertTrue(redisAdapter.sismember(setKey, member2));
+        assertTrue(redisAdapter.sismember(setKey, member3));
+        assertFalse(redisAdapter.sismember(setKey, "nonexistent"));
+        
+        // Get all members
+        Set<Object> members = redisAdapter.smembers(setKey);
+        assertEquals(3, members.size());
+        assertTrue(members.contains(member1));
+        assertTrue(members.contains(member2));
+        assertTrue(members.contains(member3));
+        
+        // Remove member
+        assertTrue(redisAdapter.srem(setKey, member1));
+        assertFalse(redisAdapter.sismember(setKey, member1));
+        assertTrue(redisAdapter.sismember(setKey, member2));
+        
+        // Clean up
+        redisAdapter.delete(setKey);
+    }
+    
+    @Test
+    void testComplexObjectSerialization() {
+        String key = "integration:test:object";
+        TestComplexObject originalObject = new TestComplexObject();
+        originalObject.setId(123L);
+        originalObject.setName("Integration Test Object");
+        originalObject.setActive(true);
+        originalObject.getProperties().put("key1", "value1");
+        originalObject.getProperties().put("key2", "value2");
+        
+        // Set complex object
+        redisAdapter.set(key, originalObject);
+        
+        // Get as generic object
+        Object retrievedGeneric = redisAdapter.get(key);
+        assertNotNull(retrievedGeneric);
+        
+        // Get as specific type
+        TestComplexObject retrieved = redisAdapter.get(key, TestComplexObject.class);
+        
+        // Verify object properties
+        assertNotNull(retrieved);
+        assertEquals(originalObject.getId(), retrieved.getId());
+        assertEquals(originalObject.getName(), retrieved.getName());
+        assertEquals(originalObject.isActive(), retrieved.isActive());
+        assertEquals(originalObject.getProperties().size(), retrieved.getProperties().size());
+        assertEquals("value1", retrieved.getProperties().get("key1"));
+        assertEquals("value2", retrieved.getProperties().get("key2"));
+        
+        // Clean up
+        redisAdapter.delete(key);
+    }
+    
+    @Test
+    void testJsonSerialization() throws Exception {
+        TestComplexObject object = new TestComplexObject();
+        object.setId(456L);
+        object.setName("JSON Test");
+        
+        String json = redisAdapter.toJson(object);
+        
+        assertNotNull(json);
+        assertTrue(json.contains("JSON Test"));
+        assertTrue(json.contains("456"));
+        
+        // Verify we can deserialize back
+        TestComplexObject deserialized = objectMapper.readValue(json, TestComplexObject.class);
+        assertEquals(object.getId(), deserialized.getId());
+        assertEquals(object.getName(), deserialized.getName());
+    }
+    
+    @Test
+    void testRedisInfo() {
+        String info = redisAdapter.getInfo();
+        
+        assertNotNull(info);
+        assertFalse(info.isEmpty());
+        assertTrue(info.contains("redis_version") || info.contains("# Server"));
+    }
+    
+    @Test
+    void testMultipleKeys() {
+        String prefix = "integration:test:multi:";
+        int keyCount = 10;
+        
+        // Set multiple keys
+        for (int i = 0; i < keyCount; i++) {
+            String key = prefix + i;
+            String value = "value" + i;
+            redisAdapter.set(key, value);
+        }
+        
+        // Verify all keys exist and have correct values
+        for (int i = 0; i < keyCount; i++) {
+            String key = prefix + i;
+            String expectedValue = "value" + i;
+            
+            assertTrue(redisAdapter.exists(key), "Key should exist: " + key);
+            assertEquals(expectedValue, redisAdapter.get(key), "Value should match for key: " + key);
+        }
+        
+        // Clean up
+        for (int i = 0; i < keyCount; i++) {
+            String key = prefix + i;
+            redisAdapter.delete(key);
+            assertFalse(redisAdapter.exists(key), "Key should be deleted: " + key);
+        }
+    }
+    
+    @Test
+    void testErrorHandling() {
+        // Test getting non-existent key
+        String nonExistentKey = "integration:test:nonexistent";
+        assertNull(redisAdapter.get(nonExistentKey));
+        assertFalse(redisAdapter.exists(nonExistentKey));
+        
+        // Test deleting non-existent key
+        assertFalse(redisAdapter.delete(nonExistentKey));
+        
+        // Test hash operations on non-existent hash
+        String nonExistentHash = "integration:test:nonexistent:hash";
+        assertNull(redisAdapter.hget(nonExistentHash, "field"));
+        Map<Object, Object> emptyHash = redisAdapter.hgetAll(nonExistentHash);
+        assertNotNull(emptyHash);
+        assertTrue(emptyHash.isEmpty());
+        
+        // Test set operations on non-existent set
+        String nonExistentSet = "integration:test:nonexistent:set";
+        assertFalse(redisAdapter.sismember(nonExistentSet, "member"));
+        Set<Object> emptySet = redisAdapter.smembers(nonExistentSet);
+        assertNotNull(emptySet);
+        assertTrue(emptySet.isEmpty());
+    }
+    
+    // Test helper class
+    public static class TestComplexObject {
+        private Long id;
+        private String name;
+        private boolean active;
+        private Map<String, String> properties = new java.util.HashMap<>();
+        
+        public TestComplexObject() {}
+        
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        
+        public boolean isActive() { return active; }
+        public void setActive(boolean active) { this.active = active; }
+        
+        public Map<String, String> getProperties() { return properties; }
+        public void setProperties(Map<String, String> properties) { this.properties = properties; }
+    }
+}

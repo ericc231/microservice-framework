@@ -26,7 +26,7 @@ class PseudoWhiteBoxGeneratorTest {
     }
 
     @Test
-    void testGenerateFiles() throws IOException {
+    void testGenerateFiles() throws Exception {
         String secret = "testSecret";
         PseudoWhiteBoxGenerator.generate(secret, tablePath, recipePath);
 
@@ -41,11 +41,11 @@ class PseudoWhiteBoxGeneratorTest {
 
         assertNotNull(recipe.getProperty("salt"));
         assertNotNull(recipe.getProperty("iterations"));
-        assertNotNull(recipe.getProperty("indices"));
+        assertNotNull(recipe.getProperty("password"));
     }
 
     @Test
-    void testGeneratedFilesCanBeReconstructed() throws IOException {
+    void testGeneratedFilesCanBeReconstructed() throws Exception {
         String originalSecret = "MySuperSecretPassword123!";
         PseudoWhiteBoxGenerator.generate(originalSecret, tablePath, recipePath);
 
@@ -56,7 +56,7 @@ class PseudoWhiteBoxGeneratorTest {
     }
 
     @Test
-    void testGenerateWithEmptySecret() throws IOException {
+    void testGenerateWithEmptySecret() throws Exception {
         String secret = "";
         PseudoWhiteBoxGenerator.generate(secret, tablePath, recipePath);
 
@@ -73,7 +73,7 @@ class PseudoWhiteBoxGeneratorTest {
     }
 
     @Test
-    void testGenerateWithSpecialCharacters() throws IOException {
+    void testGenerateWithSpecialCharacters() throws Exception {
         String secret = "!@#$%^&*()_+{}[]|\\;:'\",.<>/?`~ ";
         PseudoWhiteBoxGenerator.generate(secret, tablePath, recipePath);
 

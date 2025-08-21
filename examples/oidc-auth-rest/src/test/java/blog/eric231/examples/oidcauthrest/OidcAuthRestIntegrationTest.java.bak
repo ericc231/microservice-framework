@@ -1,0 +1,165 @@
+package blog.eric231.examples.oidcauthrest;
+
+import blog.eric231.examples.oidcauthrest.domain.User;
+import blog.eric231.examples.oidcauthrest.domain.UserRepository;
+import blog.eric231.examples.oidcauthrest.logic.UserProfileLogic;
+import blog.eric231.examples.oidcauthrest.logic.UserListLogic;
+import blog.eric231.examples.oidcauthrest.logic.CreateUserLogic;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+public class OidcAuthRestIntegrationTest {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserProfileLogic userProfileLogic;
+
+    @Autowired
+    private UserListLogic userListLogic;
+
+    @Autowired
+    private CreateUserLogic createUserLogic;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+    }
+
+    @Test
+    void testUserProfileLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode();
+        JsonNode response = userProfileLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("User not authenticated", response.get("message").asText());
+    }
+
+    @Test
+    void testUserListLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode();
+        JsonNode response = userListLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("User not authenticated", response.get("message").asText());
+    }
+
+    @Test
+    void testCreateUserLogicWithoutAuthentication() {
+        JsonNode request = objectMapper.createObjectNode()
+            .put("username", "testuser")
+            .put("email", "test@example.com")
+            .put("fullName", "Test User");
+        
+        JsonNode response = createUserLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertEquals("User not authenticated", response.get("message").asText());
+    }
+
+    @Test
+    void testCreateUserLogicWithMissingUsername() {
+        JsonNode request = objectMapper.createObjectNode()
+            .put("email", "test@example.com")
+            .put("fullName", "Test User");
+        
+        JsonNode response = createUserLogic.execute(request);
+        
+        assertFalse(response.get("success").asBoolean());
+        assertTrue(response.get("message").asText().contains("not authenticated") || 
+                  response.get("message").asText().contains("Username is required"));
+    }
+
+    @Test
+    void testUserRepository() {
+        User user = new User();
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        user.setFullName("Test User");
+        user.setActive(true);
+
+        User savedUser = userRepository.save(user);
+        assertNotNull(savedUser.getId());
+        assertEquals("testuser", savedUser.getUsername());
+        assertEquals("test@example.com", savedUser.getEmail());
+        assertTrue(savedUser.getActive());
+
+        assertTrue(userRepository.existsByUsername("testuser"));
+        assertTrue(userRepository.existsByEmail("test@example.com"));
+        
+        assertEquals(1, userRepository.findByActiveTrue().size());
+    }
+
+    @Test
+    void testUserRepositoryFindByUsername() {
+        User user = new User();
+        user.setUsername("findme");
+        user.setEmail("findme@example.com");
+        user.setFullName("Find Me");
+        user.setActive(true);
+
+        userRepository.save(user);
+
+        assertTrue(userRepository.findByUsername("findme").isPresent());
+        assertFalse(userRepository.findByUsername("notfound").isPresent());
+    }
+
+    @Test
+    void testUserRepositoryFindByEmail() {
+        User user = new User();
+        user.setUsername("emailtest");
+        user.setEmail("emailtest@example.com");
+        user.setFullName("Email Test");
+        user.setActive(true);
+
+        userRepository.save(user);
+
+        assertTrue(userRepository.findByEmail("emailtest@example.com").isPresent());
+        assertFalse(userRepository.findByEmail("noemail@example.com").isPresent());
+    }
+
+    @Test
+    void testUserEntityFields() {
+        User user = new User();
+        user.setUsername("fieldtest");
+        user.setEmail("fieldtest@example.com");
+        user.setFullName("Field Test User");
+        user.setActive(false);
+
+        User savedUser = userRepository.save(user);
+        
+        assertNotNull(savedUser.getCreatedAt());
+        assertEquals("fieldtest", savedUser.getUsername());
+        assertEquals("fieldtest@example.com", savedUser.getEmail());
+        assertEquals("Field Test User", savedUser.getFullName());
+        assertFalse(savedUser.getActive());
+    }
+
+    @Test
+    void testDomainLogicAnnotations() {
+        assertTrue(userProfileLogic.getClass().isAnnotationPresent(blog.eric231.framework.application.usecase.DL.class));
+        assertTrue(userListLogic.getClass().isAnnotationPresent(blog.eric231.framework.application.usecase.DL.class));
+        assertTrue(createUserLogic.getClass().isAnnotationPresent(blog.eric231.framework.application.usecase.DL.class));
+        
+        assertEquals("user-profile-process", 
+            userProfileLogic.getClass().getAnnotation(blog.eric231.framework.application.usecase.DL.class).value());
+        assertEquals("user-list-process", 
+            userListLogic.getClass().getAnnotation(blog.eric231.framework.application.usecase.DL.class).value());
+        assertEquals("create-user-process", 
+            createUserLogic.getClass().getAnnotation(blog.eric231.framework.application.usecase.DL.class).value());
+    }
+}

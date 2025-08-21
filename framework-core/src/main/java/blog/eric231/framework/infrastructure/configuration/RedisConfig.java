@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
@@ -24,23 +24,19 @@ import redis.clients.jedis.JedisPoolConfig;
  */
 @Slf4j
 @Configuration
-@EnableConfigurationProperties(RedisProperties.class)
+@ConditionalOnProperty(name = "framework.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class RedisConfig {
     
-    private final RedisProperties redisProperties;
-    
-    @Autowired
-    public RedisConfig(RedisProperties redisProperties) {
-        this.redisProperties = redisProperties;
-    }
+    // Note: FrameworkRedisProperties is already configured with @ConfigurationProperties
+    // and registered as a bean via @Component annotation
     
     /**
      * Jedis connection pool configuration
      */
     @Bean
-    public JedisPoolConfig jedisPoolConfig() {
+    public JedisPoolConfig jedisPoolConfig(FrameworkRedisProperties frameworkRedisProperties) {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        RedisProperties.Pool pool = redisProperties.getPool();
+        FrameworkRedisProperties.Pool pool = frameworkRedisProperties.getPool();
         
         poolConfig.setMaxTotal(pool.getMaxTotal());
         poolConfig.setMaxIdle(pool.getMaxIdle());
@@ -64,21 +60,21 @@ public class RedisConfig {
      */
     @Bean
     @ConditionalOnProperty(name = "framework.redis.mode", havingValue = "standalone", matchIfMissing = true)
-    public RedisConnectionFactory standaloneRedisConnectionFactory(JedisPoolConfig jedisPoolConfig) {
+    public RedisConnectionFactory standaloneRedisConnectionFactory(JedisPoolConfig jedisPoolConfig, FrameworkRedisProperties frameworkRedisProperties) {
         log.info("Configuring Redis for standalone mode");
         
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisProperties.getStandalone().getHost());
-        config.setPort(redisProperties.getStandalone().getPort());
-        config.setDatabase(redisProperties.getDatabase());
+        config.setHostName(frameworkRedisProperties.getStandalone().getHost());
+        config.setPort(frameworkRedisProperties.getStandalone().getPort());
+        config.setDatabase(frameworkRedisProperties.getDatabase());
         
-        if (redisProperties.getPassword() != null) {
-            config.setPassword(redisProperties.getPassword());
+        if (frameworkRedisProperties.getPassword() != null) {
+            config.setPassword(frameworkRedisProperties.getPassword());
         }
         
         JedisClientConfiguration clientConfig = JedisClientConfiguration.builder()
-                .connectTimeout(redisProperties.getTimeout())
-                .readTimeout(redisProperties.getTimeout())
+                .connectTimeout(frameworkRedisProperties.getTimeout())
+                .readTimeout(frameworkRedisProperties.getTimeout())
                 .usePooling()
                 .poolConfig(jedisPoolConfig)
                 .build();
@@ -86,9 +82,9 @@ public class RedisConfig {
         JedisConnectionFactory factory = new JedisConnectionFactory(config, clientConfig);
         
         log.info("Standalone Redis connection factory configured: {}:{}/{}",
-                redisProperties.getStandalone().getHost(),
-                redisProperties.getStandalone().getPort(),
-                redisProperties.getDatabase());
+                frameworkRedisProperties.getStandalone().getHost(),
+                frameworkRedisProperties.getStandalone().getPort(),
+                frameworkRedisProperties.getDatabase());
         
         return factory;
     }
@@ -98,19 +94,19 @@ public class RedisConfig {
      */
     @Bean
     @ConditionalOnProperty(name = "framework.redis.mode", havingValue = "cluster")
-    public RedisConnectionFactory clusterRedisConnectionFactory(JedisPoolConfig jedisPoolConfig) {
+    public RedisConnectionFactory clusterRedisConnectionFactory(JedisPoolConfig jedisPoolConfig, FrameworkRedisProperties frameworkRedisProperties) {
         log.info("Configuring Redis for cluster mode");
         
-        RedisClusterConfiguration config = new RedisClusterConfiguration(redisProperties.getCluster().getNodes());
-        config.setMaxRedirects(redisProperties.getCluster().getMaxRedirects());
+        RedisClusterConfiguration config = new RedisClusterConfiguration(frameworkRedisProperties.getCluster().getNodes());
+        config.setMaxRedirects(frameworkRedisProperties.getCluster().getMaxRedirects());
         
-        if (redisProperties.getPassword() != null) {
-            config.setPassword(redisProperties.getPassword());
+        if (frameworkRedisProperties.getPassword() != null) {
+            config.setPassword(frameworkRedisProperties.getPassword());
         }
         
         JedisClientConfiguration clientConfig = JedisClientConfiguration.builder()
-                .connectTimeout(redisProperties.getTimeout())
-                .readTimeout(redisProperties.getTimeout())
+                .connectTimeout(frameworkRedisProperties.getTimeout())
+                .readTimeout(frameworkRedisProperties.getTimeout())
                 .usePooling()
                 .poolConfig(jedisPoolConfig)
                 .build();
@@ -118,8 +114,8 @@ public class RedisConfig {
         JedisConnectionFactory factory = new JedisConnectionFactory(config, clientConfig);
         
         log.info("Cluster Redis connection factory configured: nodes={}, maxRedirects={}",
-                redisProperties.getCluster().getNodes(),
-                redisProperties.getCluster().getMaxRedirects());
+                frameworkRedisProperties.getCluster().getNodes(),
+                frameworkRedisProperties.getCluster().getMaxRedirects());
         
         return factory;
     }
