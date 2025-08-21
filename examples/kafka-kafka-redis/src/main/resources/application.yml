@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: kafka-kafka-redis-example
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: kafka-kafka-redis-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+      auto-commit-interval: 1000
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Redis configuration
+redis:
+  host: localhost
+  port: 6379
+  database: 0
+  password: ""
+
+# Framework configuration with two-stage Kafka processing
+framework:
+  application:
+    name: kafka-kafka-redis-example
+  
+  # Enable Kafka connector
+  connectors:
+    kafka:
+      enabled: true
+  
+  # Define the two-stage processing pipeline
+  routing:
+    # First stage: process input messages and forward to intermediate topic
+    - process-name: kafka-message-processor
+      triggers:
+        - type: kafka
+          listen-topic: input-messages
+          response-topic: intermediate-messages
+    
+    # Second stage: process intermediate messages and store in Redis
+    - process-name: kafka-message-storage
+      triggers:
+        - type: kafka
+          listen-topic: intermediate-messages
+
+# Logging configuration
+logging:
+  level:
+    blog.eric231.framework: INFO
+    blog.eric231.examples.kafkakafkaredis: DEBUG
+    org.springframework.kafka: INFO
+    org.springframework.data.redis: INFO

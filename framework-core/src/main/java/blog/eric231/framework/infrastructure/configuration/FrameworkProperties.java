@@ -29,7 +29,12 @@ public class FrameworkProperties {
     @Data
     public static class Kafka {
         private boolean enabled;
-        private String bootstrapServers;
+        private String bootstrapServers = "localhost:9092";
+        private String groupId = "framework-group";
+        private String autoOffsetReset = "earliest";
+        private int maxPollRecords = 500;
+        private boolean enableAutoCommit = true;
+        private int autoCommitIntervalMs = 1000;
     }
 
     @Data

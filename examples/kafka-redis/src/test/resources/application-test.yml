@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: kafka-redis-example-test
+  # Disable auto-configuration for things we don't need in tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+
+# Framework configuration for testing
+framework:
+  application:
+    name: kafka-redis-example-test
+  
+  # Enable Kafka connector with test configuration
+  kafka:
+    enabled: true
+    topics:
+      - name: test-messages
+        domain-logic: kafka-redis.message-processing
+      - name: user-events
+        domain-logic: kafka-redis.message-processing
+    consumer:
+      group-id: kafka-redis-test-group
+      max-poll-records: 100
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval-ms: 1000
+
+# Logging configuration for tests
+logging:
+  level:
+    blog.eric231.framework: DEBUG
+    blog.eric231.examples.kafkaredis: DEBUG
+    org.springframework.kafka: WARN
+    org.springframework.data.redis: WARN
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

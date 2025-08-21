@@ -166,6 +166,12 @@ This framework includes example microservices to demonstrate its capabilities. E
 *   **OIDC Auth REST Service:** Modern REST API with OIDC authentication using @DL domain logic pattern. Features JWT token validation, automatic user provisioning from OIDC claims, and comprehensive user management. ([`examples/oidc-auth-rest/README.md`](examples/oidc-auth-rest/README.md))
 *   **mTLS Auth REST Service:** Enterprise-grade REST API with mutual TLS authentication using @DL domain logic pattern. Features X.509 certificate validation, session management, secure data access, and integration with mTLS Provider for certificate management. ([`examples/mtls-auth-rest/README.md`](examples/mtls-auth-rest/README.md))
 
+### Message Processing and Data Integration
+*   **Basic REST-Redis Integration:** Simple example demonstrating REST endpoint processing with Redis storage using @DL domain logic pattern. ([`examples/basic-rest-redis/README.md`](examples/basic-rest-redis/README.md))
+*   **Basic Auth REST Client:** HTTP client example using framework's REST connector with @DL domain logic to call external basic auth services. ([`examples/basic-auth-rest-client/README.md`](examples/basic-auth-rest-client/README.md))
+*   **Kafka-Redis Pipeline:** Single-stage Kafka message processing with Redis storage using @DL domain logic pattern. Demonstrates Kafka message consumption and categorized Redis storage. ([`examples/kafka-redis/README.md`](examples/kafka-redis/README.md))
+*   **Kafka-Kafka-Redis Pipeline:** Advanced two-stage message processing pipeline using @DL domain logic pattern. Features input Kafka topic → processing & enrichment → intermediate Kafka topic → categorized Redis storage with multiple indexing strategies. ([`examples/kafka-kafka-redis/README.md`](examples/kafka-kafka-redis/README.md))
+
 
 ## Configuration
 

@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: kafka-kafka-redis-example-test
+  # Disable auto-configuration for things we don't need in tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+
+# Framework configuration for testing
+framework:
+  application:
+    name: kafka-kafka-redis-example-test
+  
+  # Enable Kafka connector with test configuration
+  connectors:
+    kafka:
+      enabled: true
+  
+  # Define the two-stage processing pipeline for testing
+  routing:
+    # First stage: process input messages and forward to intermediate topic
+    - process-name: kafka-message-processor
+      triggers:
+        - type: kafka
+          listen-topic: input-messages
+          response-topic: intermediate-messages
+    
+    # Second stage: process intermediate messages and store in Redis
+    - process-name: kafka-message-storage
+      triggers:
+        - type: kafka
+          listen-topic: intermediate-messages
+
+# Logging configuration for tests
+logging:
+  level:
+    blog.eric231.framework: DEBUG
+    blog.eric231.examples.kafkakafkaredis: DEBUG
+    org.springframework.kafka: WARN
+    org.springframework.data.redis: WARN
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

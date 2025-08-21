@@ -30,6 +30,8 @@
 		<module>examples/oidc-auth-rest</module>
 		<module>examples/mtls-auth-rest</module>
 		<module>examples/basic-auth-rest-client</module>
+		<module>examples/kafka-redis</module>
+		<module>examples/kafka-kafka-redis</module>
 	</modules>
 
 	<dependencyManagement>
