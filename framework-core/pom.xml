@@ -101,6 +101,100 @@
 			<version>0.7.3</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<!-- SSH/SFTP Support -->
+		<dependency>
+			<groupId>com.jcraft</groupId>
+			<artifactId>jsch</artifactId>
+			<version>0.1.55</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.github.mwiede</groupId>
+			<artifactId>jsch</artifactId>
+			<version>0.2.17</version>
+			<optional>true</optional>
+		</dependency>
+		
+		<!-- FTP/FTPS Support -->
+		<dependency>
+			<groupId>commons-net</groupId>
+			<artifactId>commons-net</artifactId>
+			<version>3.10.0</version>
+			<optional>true</optional>
+		</dependency>
+		
+		<!-- AWS S3 Support -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.23.9</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>auth</artifactId>
+			<version>2.23.9</version>
+			<optional>true</optional>
+		</dependency>
+		
+		<!-- TIBCO EMS Support -->
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>tibjms</artifactId>
+			<version>8.5.1</version>
+			<optional>true</optional>
+			<!-- Note: This is a commercial dependency, need to be installed manually -->
+		</dependency>
+		
+		<!-- IBM MQ Support -->
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq.allclient</artifactId>
+			<version>9.3.4.1</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.mq</groupId>
+			<artifactId>com.ibm.mq.jakarta.client</artifactId>
+			<version>9.3.4.1</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>javax.jms</groupId>
+			<artifactId>javax.jms-api</artifactId>
+			<version>2.0.1</version>
+			<optional>true</optional>
+		</dependency>
+		
+		<!-- Spring Integration for various protocols -->
+		<dependency>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-sftp</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-ftp</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-aws</artifactId>
+			<optional>true</optional>
+		</dependency>
+		
+		<!-- Test containers for integration testing -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

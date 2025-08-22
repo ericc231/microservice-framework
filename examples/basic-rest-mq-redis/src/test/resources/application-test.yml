@@ -1,0 +1,170 @@
+# Test Configuration for Basic REST MQ Redis Example
+spring:
+  application:
+    name: basic-rest-mq-redis-test
+  
+  # Test server configuration
+  server:
+    port: 0  # Random port for testing
+  
+  # Test RabbitMQ Configuration (will be overridden by TestContainers)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 10000
+    template:
+      receive-timeout: 10000
+      reply-timeout: 10000
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 1
+  
+  # Test Redis Configuration (will be overridden by TestContainers)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1  # Use different database for tests
+      timeout: 1000ms
+      lettuce:
+        pool:
+          max-active: 4
+          max-idle: 4
+          min-idle: 0
+  
+  # Test security configuration
+  security:
+    user:
+      name: testuser
+      password: testpass
+      roles: USER
+
+# Test logging configuration
+logging:
+  level:
+    blog.eric231.examples.basicrestmqredis: DEBUG
+    blog.eric231.framework: DEBUG
+    org.springframework.amqp: WARN
+    org.springframework.data.redis: WARN
+    org.springframework.security: WARN
+    org.testcontainers: INFO
+    com.rabbitmq: WARN
+    io.lettuce: WARN
+    root: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Framework test configuration
+framework:
+  # Test triggers configuration
+  triggers:
+    # REST trigger for testing
+    - name: "test-rest-trigger"
+      type: "REST"
+      path: "/api/v1/process/**"
+      target: "request-processor"
+      
+    # RabbitMQ trigger for testing
+    - name: "test-mq-trigger"
+      type: "RABBITMQ"
+      rabbitmq:
+        exchange: "test-exchange"
+        routingKey: "test.request"
+        queue: "test-queue"
+        replyQueue: "test-reply-queue"
+        exchangeType: "topic"
+        durable: false  # Non-durable for tests
+        autoDelete: true
+        exclusive: false
+      target: "message-processor"
+  
+  # Test RabbitMQ configuration
+  rabbitmq:
+    enabled: true
+    connection:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtualHost: /
+    
+    # Test exchanges
+    exchanges:
+      - name: "test-exchange"
+        type: "topic"
+        durable: false
+        autoDelete: true
+        internal: false
+    
+    # Test queues
+    queues:
+      - name: "test-queue"
+        durable: false
+        exclusive: false
+        autoDelete: true
+        bindings:
+          - exchange: "test-exchange"
+            routingKey: "test.request"
+      
+      - name: "test-reply-queue"
+        durable: false
+        exclusive: false
+        autoDelete: true
+        bindings:
+          - exchange: "test-exchange"
+            routingKey: "test.reply"
+    
+    # Test consumers
+    consumers:
+      - queueName: "test-queue"
+        concurrency: 1
+        maxConcurrency: 1
+        prefetchCount: 1
+        ackMode: "AUTO"
+    
+    # Test producers
+    producers:
+      - exchangeName: "test-exchange"
+        routingKey: "test.request"
+        confirmCallback: true
+        returnCallback: true
+        timeout: 10000
+  
+  # Test Redis configuration
+  redis:
+    enabled: true
+    connection:
+      host: localhost
+      port: 6379
+      database: 1
+      timeout: 1000
+
+# Test app configuration
+app:
+  # Test processing configuration
+  processing:
+    timeout: 10000  # 10 seconds for tests
+    retries: 2      # Fewer retries for tests
+    batchSize: 10   # Smaller batch size for tests
+  
+  # Test storage configuration
+  storage:
+    redis:
+      defaultTtl: 600       # 10 minutes for tests
+      indexTtl: 1800        # 30 minutes for test indexes
+      keyPrefix: "test:basic-rest-mq-redis:"
+  
+  # Test security configuration
+  security:
+    cors:
+      allowedOrigins: "*"
+      allowedMethods: "*"
+      allowedHeaders: "*"
+      allowCredentials: true
+      maxAge: 300  # 5 minutes for tests

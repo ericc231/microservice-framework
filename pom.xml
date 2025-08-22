@@ -32,6 +32,7 @@
 		<module>examples/basic-auth-rest-client</module>
 		<module>examples/kafka-redis</module>
 		<module>examples/kafka-kafka-redis</module>
+		<module>examples/basic-rest-mq-redis</module>
 	</modules>
 
 	<dependencyManagement>

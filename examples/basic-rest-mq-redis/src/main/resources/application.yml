@@ -1,0 +1,263 @@
+# Basic REST MQ Redis Example Application Configuration
+spring:
+  application:
+    name: basic-rest-mq-redis
+  
+  # Server configuration
+  server:
+    port: 8082
+    servlet:
+      context-path: /
+  
+  # Security configuration
+  security:
+    user:
+      name: admin
+      password: admin123
+      roles: ADMIN,USER
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 30000
+    requested-heartbeat: 30
+    publisher-confirms: true
+    publisher-returns: true
+    template:
+      mandatory: true
+      receive-timeout: 30000
+      reply-timeout: 30000
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 1
+        max-concurrency: 5
+        prefetch: 1
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          max-interval: 10000
+          multiplier: 2.0
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 2000ms
+  
+  # Jackson configuration
+  jackson:
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Logging configuration
+logging:
+  level:
+    blog.eric231.examples.basicrestmqredis: DEBUG
+    blog.eric231.framework: DEBUG
+    org.springframework.amqp: INFO
+    org.springframework.data.redis: INFO
+    org.springframework.security: INFO
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management endpoints (for monitoring)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Framework Configuration
+framework:
+  # Triggers configuration for routing between domain logic components
+  triggers:
+    # REST endpoint trigger for request processing
+    - name: "rest-request-trigger"
+      type: "REST"
+      path: "/api/v1/process/**"
+      method: "POST,PUT,GET,DELETE"
+      target: "request-processor"
+      
+    # RabbitMQ trigger for message processing
+    - name: "mq-message-trigger"
+      type: "RABBITMQ"
+      rabbitmq:
+        exchange: "processing-exchange"
+        routingKey: "process.request"
+        queue: "processing-queue"
+        replyQueue: "reply-queue"
+        exchangeType: "topic"
+        durable: true
+        autoDelete: false
+        exclusive: false
+      target: "message-processor"
+  
+  # RabbitMQ configuration for the framework
+  rabbitmq:
+    enabled: true
+    connection:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtualHost: /
+    
+    # Exchange configurations
+    exchanges:
+      - name: "processing-exchange"
+        type: "topic"
+        durable: true
+        autoDelete: false
+        internal: false
+    
+    # Queue configurations  
+    queues:
+      - name: "processing-queue"
+        durable: true
+        exclusive: false
+        autoDelete: false
+        bindings:
+          - exchange: "processing-exchange"
+            routingKey: "process.request"
+      
+      - name: "reply-queue"
+        durable: true
+        exclusive: false
+        autoDelete: false
+        bindings:
+          - exchange: "processing-exchange"  
+            routingKey: "process.reply"
+    
+    # Consumer configurations
+    consumers:
+      - queueName: "processing-queue"
+        concurrency: 2
+        maxConcurrency: 5
+        prefetchCount: 1
+        ackMode: "AUTO"
+    
+    # Producer configurations
+    producers:
+      - exchangeName: "processing-exchange"
+        routingKey: "process.request"
+        confirmCallback: true
+        returnCallback: true
+        timeout: 30000
+  
+  # Redis configuration for the framework (if needed)
+  redis:
+    enabled: true
+    connection:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000
+
+# Application-specific configuration
+app:
+  # Processing configuration
+  processing:
+    timeout: 30000  # 30 seconds timeout for MQ operations
+    retries: 3      # Number of retry attempts
+    batchSize: 100  # Batch processing size
+  
+  # Storage configuration
+  storage:
+    redis:
+      defaultTtl: 3600      # 1 hour default TTL
+      indexTtl: 86400       # 24 hours for indexes
+      keyPrefix: "basic-rest-mq-redis:"
+  
+  # Security configuration
+  security:
+    cors:
+      allowedOrigins: "*"
+      allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowedHeaders: "*"
+      allowCredentials: true
+      maxAge: 3600
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  # Override for development
+  rabbitmq:
+    host: localhost
+    username: guest  
+    password: guest
+  
+  data:
+    redis:
+      host: localhost
+      password: ""
+
+logging:
+  level:
+    blog.eric231.examples.basicrestmqredis: TRACE
+    blog.eric231.framework: DEBUG
+    org.springframework.amqp: DEBUG
+    org.springframework.data.redis: DEBUG
+
+---
+# Production profile  
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # Production RabbitMQ settings
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq-server}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:}
+    
+  # Production Redis settings  
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-server}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+logging:
+  level:
+    blog.eric231.examples.basicrestmqredis: INFO
+    blog.eric231.framework: INFO
+    root: WARN
+
+# Production app settings
+app:
+  processing:
+    timeout: 60000    # 1 minute timeout for production
+    retries: 5        # More retries in production
+  
+  security:
+    cors:
+      allowedOrigins: "https://api.example.com,https://app.example.com"

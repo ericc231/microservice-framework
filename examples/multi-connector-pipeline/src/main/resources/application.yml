@@ -1,0 +1,271 @@
+# Multi-Connector Pipeline Example Application Configuration
+
+server:
+  port: 8080
+  servlet:
+    context-path: /multi-connector-pipeline
+
+spring:
+  application:
+    name: multi-connector-pipeline-example
+
+  # Profile configuration
+  profiles:
+    active: dev
+
+  # Jackson configuration
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
+    default-property-inclusion: NON_NULL
+
+  # Redis configuration (optional - for caching)
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 1
+
+  # RabbitMQ configuration (optional - for messaging)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 30000
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+
+# Framework Core Configuration
+framework:
+  # Connector configurations
+  connectors:
+    ssh:
+      enabled: true
+      host: localhost
+      port: 22
+      username: ${SSH_USERNAME:testuser}
+      password: ${SSH_PASSWORD:testpass}
+      timeout: 30000
+      
+    ftp:
+      enabled: true
+      host: localhost
+      port: 21
+      username: ${FTP_USERNAME:ftpuser}
+      password: ${FTP_PASSWORD:ftppass}
+      passive: true
+      timeout: 30000
+      
+    sftp:
+      enabled: true
+      host: localhost
+      port: 22
+      username: ${SFTP_USERNAME:sftpuser}
+      password: ${SFTP_PASSWORD:sftppass}
+      timeout: 30000
+      
+    s3:
+      enabled: true
+      region: ${AWS_REGION:us-east-1}
+      access-key-id: ${AWS_ACCESS_KEY_ID:}
+      secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+      bucket-name: ${S3_BUCKET_NAME:test-pipeline-bucket}
+      
+    ibmmq:
+      enabled: true
+      queue-manager: ${IBMMQ_QUEUE_MANAGER:QM1}
+      host: ${IBMMQ_HOST:localhost}
+      port: ${IBMMQ_PORT:1414}
+      channel: ${IBMMQ_CHANNEL:DEV.APP.SVRCONN}
+      user: ${IBMMQ_USER:}
+      password: ${IBMMQ_PASSWORD:}
+      connection-timeout: 30000
+      use-ssl: false
+      ssl:
+        key-store: ${IBMMQ_KEYSTORE:}
+        key-store-password: ${IBMMQ_KEYSTORE_PASSWORD:}
+        trust-store: ${IBMMQ_TRUSTSTORE:}
+        trust-store-password: ${IBMMQ_TRUSTSTORE_PASSWORD:}
+        cipher-suite: ${IBMMQ_CIPHER_SUITE:}
+        fips-required: false
+      pool:
+        max-connections: 10
+        min-connections: 1
+        max-idle-time: 300000
+        connection-retry-interval: 5000
+        max-retries: 3
+      default-queue:
+        put-message-options: 0
+        get-message-options: 0
+        open-options: 2032
+        transactional: false
+        message-expiry: 0
+        priority: 0
+      message:
+        default-format: "MQSTR"
+        default-char-set: "UTF-8"
+        default-expiry: 0
+        default-priority: 0
+        enable-correlation-id: true
+        enable-message-id: true
+        max-message-size: 4194304
+      
+  # Adapter configurations
+  adapters:
+    redis:
+      enabled: true
+      prefix: "pipeline:"
+      
+    rabbitmq:
+      enabled: true
+      exchange: "pipeline.events"
+
+# Logging configuration
+logging:
+  level:
+    blog.eric231: DEBUG
+    org.springframework.amqp: INFO
+    com.amazonaws: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/multi-connector-pipeline.log
+    max-size: 100MB
+    max-history: 30
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+# Application info
+info:
+  app:
+    name: Multi-Connector Pipeline Example
+    description: Demonstrates integration of multiple connectors in a file processing pipeline
+    version: 1.0.0
+  build:
+    artifact: multi-connector-pipeline
+    group: blog.eric231.examples
+
+---
+# Development Profile
+spring:
+  profiles: dev
+  
+# Enable debug logging for development
+logging:
+  level:
+    blog.eric231: DEBUG
+    org.springframework.web: DEBUG
+
+# Development-specific connector settings
+framework:
+  connectors:
+    ssh:
+      host: localhost
+      # Use mock/test credentials in development
+    ftp:
+      host: localhost
+    sftp:
+      host: localhost
+    s3:
+      # Use LocalStack or MinIO for local S3 testing
+      endpoint: http://localhost:4566  # LocalStack endpoint
+      bucket-name: test-pipeline-bucket
+
+---
+# Production Profile
+spring:
+  profiles: prod
+
+# Production logging - less verbose
+logging:
+  level:
+    blog.eric231: INFO
+    root: WARN
+  file:
+    name: /var/log/multi-connector-pipeline/application.log
+
+# Production connector settings
+framework:
+  connectors:
+    ssh:
+      host: ${PROD_SSH_HOST:prod-ssh-server}
+      username: ${PROD_SSH_USERNAME}
+      password: ${PROD_SSH_PASSWORD}
+    ftp:
+      host: ${PROD_FTP_HOST:prod-ftp-server}
+      username: ${PROD_FTP_USERNAME}
+      password: ${PROD_FTP_PASSWORD}
+    sftp:
+      host: ${PROD_SFTP_HOST:prod-sftp-server}
+      username: ${PROD_SFTP_USERNAME}
+      password: ${PROD_SFTP_PASSWORD}
+    s3:
+      region: ${PROD_AWS_REGION:us-east-1}
+      access-key-id: ${PROD_AWS_ACCESS_KEY_ID}
+      secret-access-key: ${PROD_AWS_SECRET_ACCESS_KEY}
+      bucket-name: ${PROD_S3_BUCKET_NAME}
+
+# Production Redis
+spring:
+  redis:
+    host: ${PROD_REDIS_HOST:prod-redis}
+    port: ${PROD_REDIS_PORT:6379}
+    password: ${PROD_REDIS_PASSWORD:}
+
+# Production RabbitMQ
+spring:
+  rabbitmq:
+    host: ${PROD_RABBITMQ_HOST:prod-rabbitmq}
+    port: ${PROD_RABBITMQ_PORT:5672}
+    username: ${PROD_RABBITMQ_USERNAME}
+    password: ${PROD_RABBITMQ_PASSWORD}
+
+---
+# Test Profile
+spring:
+  profiles: test
+
+# Test-specific settings
+framework:
+  connectors:
+    ssh:
+      enabled: false  # Disable for unit tests
+    ftp:
+      enabled: false
+    sftp:
+      enabled: false
+    s3:
+      enabled: false
+
+# Use embedded test configurations
+spring:
+  redis:
+    # Will use embedded Redis for tests
+  rabbitmq:
+    # Will use embedded RabbitMQ for tests
+
+logging:
+  level:
+    blog.eric231: DEBUG
